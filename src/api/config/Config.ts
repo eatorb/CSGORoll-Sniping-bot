@@ -9,6 +9,7 @@ if (!process.env.JWT_SECRET)
 
 if (!process.env.JWT_REFRESH_SECRET)
     throw new Error('JWT_REFRESH_SECRET is not defined in environment variables!');
+
 export const encryptionSecret: string = process.env.ENC_SECRET_KEY;
 export const jwtSecret: string = process.env.JWT_SECRET;
 export const jwtRefreshSecret: string = process.env.JWT_REFRESH_SECRET;
@@ -27,6 +28,6 @@ export const accessTokenCookie: Object = {
     sameSite: 'strict'
 }
 
-export default {
+/*export default {
     encryptionSecret, jwtSecret, jwtRefreshSecret, refreshTokenCookie
-}
+}*/
