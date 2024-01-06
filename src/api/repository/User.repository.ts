@@ -1,69 +1,90 @@
-import {MysqlError, Pool} from "mysql";
-import mysql from "../../shared/config/Config";
-import {IUser} from "../models/interfaces/IUser";
+import {Prisma, PrismaClient, user} from "@prisma/client";
 
 export class UserRepository {
-    private connection: Pool;
+
+    private prisma: PrismaClient;
     constructor() {
-        this.connection = mysql.connection;
+        this.prisma = new PrismaClient();
     }
 
     async createUser(email: string, hashedPassword: string): Promise<number> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('INSERT INTO user (email, password) VALUES ((?), (?))', [email, hashedPassword], (error: MysqlError | null, results): void => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while registering.'));
-
-                // get the user id
-                resolve(results.insertId);
+        try {
+            const user: user = await this.prisma.user.create({
+                data: {
+                    email,
+                    password: hashedPassword
+                }
             });
-        });
+            return user.UserID;
+
+        } catch (error) {
+
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+                if (error.code === 'P2002')
+                    throw new Error('This email is already registered.');
+            }
+
+            throw new Error('Error creating user.');
+        }
     }
 
-    async findByEmail(email: string): Promise<IUser | null> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('SELECT * FROM user WHERE email = (?)', [email], (error: MysqlError | null, results): void => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while finding an email.'));
-
-                resolve(results.length > 0 ? results[0] : null);
+    async findByEmail(email: string): Promise<user | null> {
+        try {
+            return await this.prisma.user.findFirst({
+                where: {
+                    email: email
+                }
             });
-        });
+
+        } catch (error) {
+            throw new Error('Error while finding user.');
+        }
     }
 
-    async saveRefreshToken(refreshToken: string, userId: number): Promise<void> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('UPDATE user SET refreshToken = (?) WHERE UserID = (?)', [refreshToken, userId], (error: MysqlError | null): void => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while trying to refresh token.'));
-
-                resolve();
+    async updateRefreshToken(refreshToken: string, userId: number): Promise<void> {
+        try {
+            await this.prisma.user.update({
+                where: {
+                    UserID: userId
+                },
+                data: {
+                    refreshToken: refreshToken
+                }
             });
-        });
+
+        } catch(error) {
+            throw new Error('Error while updating refresh token.');
+        }
     }
 
-    async findRefreshToken(refreshToken: string): Promise<string | null> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('SELECT refreshToken FROM user WHERE refreshToken = (?)', [refreshToken], (error: MysqlError | null, results): void => {
-                if (error)
-                    reject(new Error('Mysql has occured an error while trying to find refresh token.'));
-
-                resolve(results.length > 0 ? results[0].refreshToken : null);
+    async findRefreshToken(refreshToken: string): Promise<user | null> {
+        try {
+            return await this.prisma.user.findFirst({
+                where: {
+                    refreshToken: refreshToken
+                },
             });
-        });
+
+        } catch (error) {
+            throw new Error('Error while finding refresh token.');
+        }
     }
 
-    async removeRefreshToken(refreshToken: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.query('UPDATE user SET refreshToken = NULL WHERE refreshToken = (?)', [refreshToken], (error: MysqlError | null): void => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while trying to delete refresh token.'));
-
-                resolve();
+    async deleteRefreshToken(refreshToken: string): Promise<void> {
+        try {
+            await this.prisma.user.updateMany({
+                where: {
+                    refreshToken: refreshToken
+                },
+                data: {
+                    refreshToken: null
+                }
             });
-        });
+
+        } catch (error) {
+            throw new Error('Error while deleting refresh token.');
+        }
+
     }
-
-
 
 }

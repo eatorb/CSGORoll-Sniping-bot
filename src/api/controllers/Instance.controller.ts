@@ -3,7 +3,7 @@ import {ErrorResponse} from "../handlers/ErrorHandler";
 import {ErrorCode} from "../models/enums/ErrorCode";
 import {ErrorMessage} from "../models/enums/ErrorMessage";
 import {InstanceService} from "../services/Instance.service";
-import {IInstance} from "../models/interfaces/IInstance";
+import {instance} from "@prisma/client";
 
 export default {
 
@@ -37,7 +37,7 @@ export default {
 
         const instanceService: InstanceService = new InstanceService();
 
-        const instance: IInstance | null = await instanceService.listInstance(userId);
+        const instance: instance | null = await instanceService.listInstance(userId);
 
         return response.send({
             success: "Listed active instances.",

@@ -1,19 +1,28 @@
-import {MysqlError, Pool} from "mysql";
+import {PrismaClient} from "@prisma/client";
 import {IError} from "../models/interfaces/IError";
-import mysql from "../../shared/config/Config";
 class ErrorRepository {
-    private connection: Pool;
+
+    private prisma: PrismaClient;
+
     constructor() {
-        this.connection = mysql.connection;
+        this.prisma = new PrismaClient();
     }
 
     async insertError(error: IError): Promise<void> {
-        return new Promise<void>((resolve, reject: (reason?: any) => void) => {
-            this.connection.query('INSERT INTO errorlogs (`errorMessage`, `status`, `errorCode`, `timestamp`) VALUES ((?), (?), (?), (?))', [error.errorMessage, error.status, error.errorCode, error.timeStamp], (error: MysqlError | null) => {
-                if (error) console.log(error)//reject(new Error('Mysql has occured an error'));
-                else resolve();
-            });
-        })
+        try {
+
+            await this.prisma.errorlogs.create({
+                data: {
+                    errorCode: error.errorCode,
+                    errorMessage: error.errorMessage,
+                    timestamp: error.timeStamp,
+                    status: error.status
+                }
+            })
+
+        } catch (error) {
+            throw new Error('Error occurred while inserting an error.');
+        }
     }
 }
 

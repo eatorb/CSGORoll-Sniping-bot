@@ -1,6 +1,6 @@
-import Dockerode from 'dockerode';
 import {InstanceRepository} from "../repository/Instance.repository";
-import {IInstance} from "../models/interfaces/IInstance";
+import {instance} from "@prisma/client";
+import Dockerode from "dockerode";
 
 export class InstanceService {
 
@@ -18,7 +18,7 @@ export class InstanceService {
         if (!userId)
             throw new Error('An unexpected error happened while trying to create an instance.');
 
-        const instance: IInstance | null = await this.instanceRepository.getUserInstance(userId);
+        const instance: instance | null = await this.instanceRepository.getUserInstance(userId);
 
         if (instance)
             throw new Error('Instance already exists for this user.');
@@ -43,10 +43,14 @@ export class InstanceService {
         if (!userId)
             throw new Error('An unexpected error happened while trying to start an instance.');
 
-        const instance: IInstance | null = await this.instanceRepository.getUserInstance(userId);
+        const instance: instance | null = await this.instanceRepository.getUserInstance(userId);
 
         if (!instance)
             throw new Error('There are no active instances on your account. Please create an instance first.');
+
+        // THIS SHOULD NEVER HAPPEN
+        if (!instance.containerId)
+            throw new Error('Container id hasnt been found. If this issue happens contact an administrator.');
 
         const container: Dockerode.Container = this.docker.getContainer(instance.containerId);
 
@@ -58,10 +62,14 @@ export class InstanceService {
         if (!userId)
             throw new Error('An unexpected error happened while trying to stop an instance.');
 
-        const instance: IInstance | null = await this.instanceRepository.getUserInstance(userId);
+        const instance: instance | null = await this.instanceRepository.getUserInstance(userId);
 
         if (!instance)
             throw new Error('There are no active instances on your account. Please create an instance first.');
+
+        // THIS SHOULD NEVER HAPPEN
+        if (!instance.containerId)
+            throw new Error('Container id hasnt been found. If this issue happens contact an administrator.');
 
 
         const container: Dockerode.Container = this.docker.getContainer(instance.containerId);
@@ -74,10 +82,14 @@ export class InstanceService {
         if (!userId)
             throw new Error('An unexpected error happened while trying to start an instance.');
 
-        const instance: IInstance | null = await this.instanceRepository.getUserInstance(userId);
+        const instance: instance | null = await this.instanceRepository.getUserInstance(userId);
 
         if (!instance)
             throw new Error('There are no active instances on your account. Please create an instance first.');
+
+        // THIS SHOULD NEVER HAPPEN
+        if (!instance.containerId)
+            throw new Error('Container id hasnt been found. If this issue happens contact an administrator.');
 
         const container: Dockerode.Container = this.docker.getContainer(instance.containerId);
         await container.remove();
@@ -85,7 +97,7 @@ export class InstanceService {
         await this.instanceRepository.deleteInstance(userId, instance.containerId);
     }
 
-    async listInstance(userId: number | undefined): Promise<IInstance | null> {
+    async listInstance(userId: number | undefined): Promise<instance | null> {
         if (!userId)
             throw new Error('An unexpected error happened while trying to list an instance.');
 

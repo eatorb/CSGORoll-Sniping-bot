@@ -3,7 +3,7 @@ import {ErrorMessage} from "../models/enums/ErrorMessage";
 import {ErrorCode} from "../models/enums/ErrorCode";
 import {ErrorResponse} from "../handlers/ErrorHandler";
 import jwt from 'jsonwebtoken';
-import {jwtSecret} from "../../shared/config/Config";
+import {jwtSecret} from "../config/Config";
 import {IJWTPayload} from "../models/interfaces/IJWTPayload";
 
 declare global {

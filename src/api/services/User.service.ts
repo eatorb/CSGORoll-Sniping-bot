@@ -1,10 +1,9 @@
 import {UserRepository} from "../repository/User.repository";
-import {IUser} from "../models/interfaces/IUser";
-import {jwtRefreshSecret, jwtSecret} from "../../shared/config/Config";
-import {isSQLInjections} from "../../shared/utilities/restUtils";
+import {jwtRefreshSecret, jwtSecret} from "../config/Config";
 import bcrypt from 'bcrypt';
 import jwt, {JwtPayload} from "jsonwebtoken";
 import {PasswordValidationService} from "./PasswordValidation.service";
+import {user} from "@prisma/client";
 
 export class UserService {
 
@@ -15,16 +14,8 @@ export class UserService {
     }
 
     async registerUser(email: string, password: string, termsAccepted: boolean): Promise<{accessToken: string, refreshToken: string}> {
-        if (isSQLInjections(email, password))
-            throw new Error('An unexpected error has occurred.');
-
         if (!termsAccepted)
             throw new Error('You have to accept our terms of service.');
-
-        const user: IUser | null = await this.userRepository.findByEmail(email);
-
-        if (user)
-            throw new Error('User with this email has been already registered, please use another email.');
 
         PasswordValidationService.validate(password);
 
@@ -34,43 +25,37 @@ export class UserService {
 
         const refreshToken: string = this.generateRefreshToken(userId);
 
-        await this.userRepository.saveRefreshToken(refreshToken, userId);
+        await this.userRepository.updateRefreshToken(refreshToken, userId);
 
         const accessToken: string = jwt.sign({ userId: userId }, jwtSecret, { expiresIn: '15m' });
+
         return {accessToken, refreshToken};
     }
 
     async loginUser(email: string, password: string, remember: boolean): Promise<{accessToken: string, refreshToken: string}> {
-        if (isSQLInjections(email, password))
-            throw new Error('An unexpected error has occurred.');
-
-        const user: IUser | null = await this.userRepository.findByEmail(email);
+        const user: user | null = await this.userRepository.findByEmail(email);
 
         if (!user || !(await bcrypt.compare(password, user.password)))
             throw new Error('Invalid credentials');
 
-        const refreshToken: string = this.generateRefreshToken(user.userId!);
+        const refreshToken: string = this.generateRefreshToken(user.UserID);
 
-        await this.userRepository.saveRefreshToken(refreshToken, user.userId!);
+        await this.userRepository.updateRefreshToken(refreshToken, user.UserID);
 
         const expiresIn: string = remember ? '1d' : '15m';
 
-        const accessToken: string = jwt.sign({ userId: user.userId }, jwtSecret, { expiresIn });
+        const accessToken: string = jwt.sign({ userId: user.UserID }, jwtSecret, { expiresIn });
 
         return {accessToken, refreshToken};
     }
     async refreshToken(refreshToken: string): Promise<{accessToken: string}> {
 
-        if (isSQLInjections(refreshToken))
-            throw new Error('Invalid token format.');
+        const user: user | null = await this.userRepository.findRefreshToken(refreshToken);
 
-        const token: string | null = await this.userRepository.findRefreshToken(refreshToken);
-
-        if (!token)
-            throw new Error('Refresh token not found. Please log in again.');
+        if (!user)
+            throw new Error('User not found. Please log in again.');
 
         try {
-
             const decoded: jwt.JwtPayload = jwt.verify(refreshToken, jwtRefreshSecret) as JwtPayload;
 
             if (!decoded.userId)
@@ -86,12 +71,7 @@ export class UserService {
     }
 
     async logoutUser(refreshToken: string): Promise<void> {
-
-        if (isSQLInjections(refreshToken))
-            throw new Error('Invalid token format.');
-
-        await this.userRepository.removeRefreshToken(refreshToken);
-
+        await this.userRepository.deleteRefreshToken(refreshToken);
     }
 
     private generateRefreshToken(userId: number): string {

@@ -4,7 +4,8 @@ import {ErrorCode} from "../models/enums/ErrorCode";
 import {UserService} from "../services/User.service";
 import {Request, Response} from "express";
 import {IUser} from "../models/interfaces/IUser";
-import {accessTokenCookie, refreshTokenCookie} from "../../shared/config/Config";
+import {accessTokenCookie, refreshTokenCookie} from "../config/Config";
+
 
 export default {
     async registerUser(request: Request, response: Response): Promise<Response | undefined> {

@@ -1,6 +1,4 @@
 import express, {Express, Router} from 'express';
-import {connection} from '../../shared/config/Config';
-import mysql from 'mysql';
 import MainRouting from './main';
 import AuthController from "../controllers/Auth.controller";
 import {AuthMiddleware} from "../middleware/Auth.middleware";
@@ -9,15 +7,12 @@ import InstanceController from "../controllers/Instance.controller";
 export default class Routing {
 
     app: Express;
-    sql: mysql.Pool;
     config: Map<String, any> = new Map<String, any>();
 
     constructor(app: Express) {
         this.app = app;
-        this.sql = connection;
 
         this.config.set('app', this.app);
-        this.config.set('sql', this.sql);
 
         this.init();
     }

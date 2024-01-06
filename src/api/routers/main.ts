@@ -1,6 +1,6 @@
 import Routing from "../models/Routing";
 import express from "express";
-import restUtils from "../../shared/utilities/restUtils";
+import restUtils from "../utils/restUtils";
 export default class MainRouting extends Routing {
 
     router: express.Router;
