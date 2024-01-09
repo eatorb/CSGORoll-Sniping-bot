@@ -3,6 +3,7 @@ import MainRouting from './main';
 import AuthController from "../controllers/Auth.controller";
 import {AuthMiddleware} from "../middleware/Auth.middleware";
 import InstanceController from "../controllers/Instance.controller";
+import UserController from "../controllers/User.controller";
 
 export default class Routing {
 
@@ -31,6 +32,7 @@ export default class Routing {
     initRoutes(router: Router): void  {
         this.initAuthRoutes(router);
         this.initInstanceRoutes(router);
+        this.initUserRoutes(router);
     }
 
     initAuthRoutes(router: Router): void {
@@ -46,6 +48,10 @@ export default class Routing {
         router.put('/instance/start', AuthMiddleware, InstanceController.startInstance);
         router.put('/instance/stop', AuthMiddleware, InstanceController.stopInstance);
         router.delete('/instance', AuthMiddleware, InstanceController.deleteInstance);
+    }
+
+    initUserRoutes(router: Router): void {
+        router.post('/user/cookie/:cookie', AuthMiddleware, UserController.saveUserCookie);
     }
 
 }

@@ -3,12 +3,14 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import Routing from "../api/routers/routing";
 import {WebsocketServer} from "../server/WebsocketServer";
+import {Client} from "../client/Client";
 
 export class Server {
 
     private readonly app: Express;
     private readonly port: number;
     private WebsocketServer: WebsocketServer;
+
 
     constructor(port: number) {
         this.app = express();
@@ -18,7 +20,10 @@ export class Server {
         this.initRouting();
         this.initRouting();
 
+
         this.WebsocketServer = new WebsocketServer(4200);
+
+        new Client();
     }
 
     private initMiddlewares(): void {

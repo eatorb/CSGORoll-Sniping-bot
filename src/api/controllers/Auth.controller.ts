@@ -73,11 +73,6 @@ export default {
         return response;
     },
 
-    async changePassword(request: Request, response: Response): Promise<Response | undefined> {
-
-        return response;
-    },
-
     async verifyEmail(request: Request, response: Response): Promise<Response | undefined> {
 
         return response;

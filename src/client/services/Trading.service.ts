@@ -1,11 +1,14 @@
+import Websocket from "ws";
+import {joinTradesQuery} from "../queries/joinTradesQuery";
+import {IWithdrawalItem} from "../models/interfaces/IWithdrawalItem";
 export class TradingService {
-    private markupPercentage: number = 2;
-    private minPrice: number = 5;
-    private maxPrice: number = 100;
 
     private readonly data: string;
-    constructor(data: string) {
+    private socket: Websocket;
+    private joinTradesQuery: any = null;
+    constructor(data: string, socket: Websocket) {
         this.data = data;
+        this.socket = socket;
 
         this.withdrawLowestPricedItem();
     }
@@ -18,17 +21,20 @@ export class TradingService {
             if (!tradeItems || tradeItems.length === 0)
                 return;
 
-            const itemToWithdraw = tradeItems.find((item: any) => {
-                const meetsMarkupCriteria: boolean = item.markupPercent <= this.markupPercentage;
-                const meetsPriceCriteria: boolean = item.value >= this.minPrice && item.value <= this.maxPrice;
-
-                return meetsMarkupCriteria && meetsPriceCriteria;
+            const itemToWithdraw: IWithdrawalItem = tradeItems.find((item: any): boolean => {
+                return item.value < 10;
             });
 
             if (!itemToWithdraw)
                 return;
 
-            console.log('Item selected for withdrawal:', itemToWithdraw);
+            //console.log('Item selected for withdrawal:', itemToWithdraw);
+
+            console.log(itemToWithdraw.id);
+
+            await this.withdrawItem(itemToWithdraw.id, 'test');
+
+
 
         } catch (error) {
             console.error('Error in withdrawing item:', error);
@@ -36,6 +42,13 @@ export class TradingService {
         }
     }
 
-    async withdrawItem(apiKey: string, itemId: number, coinValue: number): Promise<void> {
+    async withdrawItem(itemId: string, captcha: string): Promise<void> {
+        this.socket.send(JSON.stringify(joinTradesQuery(itemId, captcha)));
     }
+
+    private solveCaptcha(): void {
+
+    }
+
+
 }

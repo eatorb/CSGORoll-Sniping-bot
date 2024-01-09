@@ -22,7 +22,7 @@ export default class MainRouting extends Routing {
 
             return result.send({
                 status: "OK",
-                message: "EmpireSniper API is up and running.",
+                message: "SnipeIT API is up and running.",
                 uptime: uptime
             });
         });

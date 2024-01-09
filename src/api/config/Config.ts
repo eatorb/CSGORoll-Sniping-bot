@@ -1,9 +1,6 @@
 if (!process.env.ENC_SECRET_KEY)
     throw new Error('ENC_SECRET_KEY is not defined in environment variables!');
 
-if (!process.env.EMPIRE_API_KEY)
-    throw new Error('EMPIRE_API_KEY is not defined in environment variables!');
-
 if (!process.env.JWT_SECRET)
     throw new Error('JWT_SECRET is not defined in environment variables!');
 
@@ -28,6 +25,6 @@ export const accessTokenCookie: Object = {
     sameSite: 'strict'
 }
 
-/*export default {
+export default {
     encryptionSecret, jwtSecret, jwtRefreshSecret, refreshTokenCookie
-}*/
+}
