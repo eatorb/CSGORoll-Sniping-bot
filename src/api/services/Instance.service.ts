@@ -1,16 +1,19 @@
 import {InstanceRepository} from "../repository/Instance.repository";
-import {instance} from "@prisma/client";
+import {cookies, instance} from "@prisma/client";
 import Dockerode from "dockerode";
+import {CookieRepository} from "../repository/Cookie.repository";
 
 export class InstanceService {
 
     private docker: Dockerode;
     private readonly imageName: string = 'snipeit-io-api';
     private instanceRepository: InstanceRepository;
+    private cookieRepository: CookieRepository;
 
     constructor() {
         this.docker = new Dockerode();
         this.instanceRepository = new InstanceRepository();
+        this.cookieRepository = new CookieRepository();
     }
 
     async createInstance(userId: number | undefined): Promise<void> {
@@ -23,11 +26,13 @@ export class InstanceService {
         if (instance)
             throw new Error('Instance already exists for this user.');
 
+        const encryptedCookies: cookies | null = await this.cookieRepository.getUserCookie(userId);
 
         const container: Dockerode.Container = await this.docker.createContainer({
             Image: this.imageName,
             Cmd: ['node', './dist/src/client/ClientInit.js'],
-            name: `container_${userId}`
+            name: `container_${userId}`,
+            Env: [`COOKIES=${encryptedCookies}`]
         });
 
         const containerInfo: Dockerode.ContainerInspectInfo = await container.inspect();

@@ -1,4 +1,4 @@
-import {PrismaClient} from "@prisma/client";
+import {cookies, PrismaClient} from "@prisma/client";
 
 export class CookieRepository {
 
@@ -20,6 +20,18 @@ export class CookieRepository {
 
         } catch (error) {
             throw new Error('Error occurred while inserting the cookie');
+        }
+    }
+
+    async getUserCookie(userId: number): Promise<cookies | null> {
+        try {
+            return await this.prisma.cookies.findFirst({
+                where: {
+                    userId: userId
+                }
+            })
+        } catch (error) {
+            throw new Error('Error occurred while getting users cookie.');
         }
     }
 

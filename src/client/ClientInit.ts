@@ -1,3 +1,6 @@
 import {Client} from "./Client";
 
-new Client();
+if (!process.env.COOKIES)
+    throw new Error('Failed to pass user cookies.');
+
+new Client(process.env.COOKIES);

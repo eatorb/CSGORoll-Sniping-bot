@@ -5,7 +5,6 @@ export class TradingService {
 
     private readonly data: string;
     private socket: Websocket;
-    private joinTradesQuery: any = null;
     constructor(data: string, socket: Websocket) {
         this.data = data;
         this.socket = socket;

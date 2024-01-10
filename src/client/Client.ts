@@ -4,6 +4,7 @@ import {HandleConnect} from "./events/HandleConnect";
 import {HandleClose} from "./events/HandleClose";
 import {HandleMessage} from "./events/HandleMessage";
 import {HandleError} from "./events/HandleError";
+import {EncryptionService} from "../api/services/Encryption.service";
 
 export class Client {
 
@@ -11,9 +12,13 @@ export class Client {
     private socketEndpoint: string = 'wss://api.csgoroll.com/graphql';
     private readonly headers: Record<string, string>;
     private subProtocol: string[] = ['graphql-transport-ws'];
+    private readonly encryptedUserCookies: string;
+    private encryptionService: EncryptionService;
 
-    constructor() {
-        this.headers = headers;
+    constructor(encryptedUserCookies: string) {
+        this.encryptedUserCookies = encryptedUserCookies;
+        this.encryptionService = new EncryptionService(process.env.ENC_SECRET_KEY!);
+        this.headers = headers(this.decryptUserCookies());
         this.init();
     }
 
@@ -45,6 +50,10 @@ export class Client {
         });
 
         this.socket.on('error', (error: any) => new HandleError(this.socket, error));
+    }
+
+    private decryptUserCookies(): string {
+        return this.encryptionService.decrypt(this.encryptedUserCookies);
     }
 
 }
