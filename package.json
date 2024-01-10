@@ -30,7 +30,6 @@
     "nodemailer": "^6.9.8",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "socket.io-client": "^2.5.0",
     "ts-jest": "^29.1.1",
     "uuid": "^9.0.0",
     "ws": "^8.16.0"
@@ -51,7 +50,6 @@
     "@types/node": "^18.0.3",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.8",
-    "@types/socket.io-client": "^3.0.0",
     "@types/uuid": "^9.0.1",
     "@types/ws": "^8.5.10",
     "concurrently": "^7.2.2",
