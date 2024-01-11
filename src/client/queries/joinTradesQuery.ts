@@ -1,38 +1,18 @@
 export const joinTradesQuery = (tradeId: string, recaptcha: string) => {
     return {
-        id: "a9c500f9-b961-40d9-9820-b7841493307b",
+        id: "1c9e82fc-afd9-4164-abe7-903df10a0d4c",
         type: "subscribe",
         payload: {
             variables: {
                 input: {
                     tradeIds: [tradeId],
-                    recaptcha: recaptcha
-                },
-                hasCompliedToAntiRWT: true
-            }
-        },
-        extensions: {},
-        operationName: "JoinTrades",
-        query: `mutation JoinTrades($input: JoinTradesInput!) {
-            joinTrades(input: $input) {
-                trades {
-                    id
-                    status
-                    totalValue
-                    updatedAt
-                    expiresAt
-                    withdrawer {
-                        id
-                        steamId
-                        avatar
-                        displayName
-                        steamDisplayName
-                        __typename
-                    }
-                    __typename
+                    recaptcha: recaptcha,
+                    hasCompliedToAntiRWT: true
                 }
-                __typename
-            }
-        }`
+            },
+            extensions: {},
+            operationName: "JoinTrades",
+            query: "mutation JoinTrades($input: JoinTradesInput!) {\n  joinTrades(input: $input) {\n    trades {\n      id\n      status\n      totalValue\n      updatedAt\n      expiresAt\n      withdrawer {\n        id\n        steamId\n        avatar\n        displayName\n        steamDisplayName\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
+        }
     };
 };

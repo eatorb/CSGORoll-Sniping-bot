@@ -18,21 +18,31 @@ export class TradingService {
 
         try {
             const jsonData = JSON.parse(this.data);
-            const tradeItems = jsonData.payload?.data?.createTrade?.trade?.tradeItems;
+
+            const trade = jsonData.payload?.data?.createTrade?.trade;
+
+            if (!trade)
+                return;
+
+            const tradeId = trade.id;
+
+
+            const tradeItems = trade.tradeItems;
 
             if (!tradeItems || tradeItems.length === 0)
                 return;
 
             const itemToWithdraw: IWithdrawalItem = tradeItems.find((item: any): boolean => {
-                return item.value < 10;
+                return item.value < 2;
             });
 
             if (!itemToWithdraw)
                 return;
 
-            console.log('Item selected for withdrawal:', itemToWithdraw);
+            console.log('Item selected for withdrawal with id:', tradeId);
+            console.log('Obj:', itemToWithdraw);
 
-            await this.executeWithdrawal(itemToWithdraw.id);
+            await this.executeWithdrawal(tradeId);
 
             const duration = Date.now() - startTime;
             console.log(`Total time for withdrawal process: ${duration} ms`);
@@ -68,6 +78,9 @@ export class TradingService {
 
         return new Promise((resolve, reject): void => {
             captchaSolvingService.createTask().then((taskId: string | null): void => {
+
+                console.log("[captcha] trying to resolve captcha...");
+
                 if (!taskId) {
                     reject(new Error('Task id hasnt been found.'));
                     return;
@@ -81,16 +94,17 @@ export class TradingService {
                 setTimeout((): void => {
                     captchaSolvingService.getTaskResult(taskId).then((captchaResponse) => {
                         const duration = Date.now() - startTime;
-                        console.log(`Time taken to solve captcha: ${duration} ms`);
+                        console.log(`[captcha] Time taken to solve captcha: ${duration} ms`);
                         resolve(captchaResponse);
                     }).catch(reject);
-                }, 3000);
+                }, 5000);
 
             }).catch(reject);
         })
     }
 
     async withdrawItem(itemId: string, captcha: string): Promise<void> {
+        console.log("[withdraw] executed withdraw", JSON.stringify(joinTradesQuery(itemId, captcha)))
         this.socket.send(JSON.stringify(joinTradesQuery(itemId, captcha)));
     }
 }

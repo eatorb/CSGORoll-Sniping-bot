@@ -22,14 +22,16 @@ export class CaptchaSolvingService {
             clientKey: this.apiKey,
             task: {
                 type: "ReCaptchaV3M1TaskProxyLess",
-                websiteURL: "https://www.csgoroll.com/en/withdraw/csgo/p2p",
-                websiteKey: "6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-",
+                websiteURL: "https://api.csgoroll.com",
+                websiteKey: "6LfVf3wUAAAAAL8T79ziKWF-Jmkc3LT9fzEVoiO5",
                 pageAction: "joinTrades",
             }
         }
 
         try {
             const response: AxiosResponse<ICreateTaskResponse> = await this.httpClient.post<ICreateTaskResponse>(url, data);
+
+            console.log("[captcha] response from captcha with task id", response.data.taskId);
 
             return response.data.taskId;
 
@@ -49,6 +51,8 @@ export class CaptchaSolvingService {
 
         try {
             const response: AxiosResponse<IGetTaskResultResponse> = await this.httpClient.post<IGetTaskResultResponse>(url, data);
+
+            console.log("[captcha] Captcha token", response.data.solution?.gRecaptchaResponse);
 
             if (!response.data.solution?.gRecaptchaResponse)
                 throw new Error('gRecaptchaResponse hasnt been found');
