@@ -1,6 +1,8 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export const joinTradesQuery = (tradeId: string, recaptcha: string) => {
     return {
-        id: "1c9e82fc-afd9-4164-abe7-903df10a0d4c",
+        id: uuidv4(),
         type: "subscribe",
         payload: {
             variables: {

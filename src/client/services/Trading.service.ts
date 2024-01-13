@@ -6,6 +6,10 @@ export class TradingService {
 
     private readonly data: string;
     private socket: Websocket;
+    private markupPercentage: number = 2;
+    private minPrice: number = 5;
+    private maxPrice: number = 13;
+
     constructor(data: string, socket: Websocket) {
         this.data = data;
         this.socket = socket;
@@ -18,29 +22,31 @@ export class TradingService {
 
         try {
             const jsonData = JSON.parse(this.data);
-
             const trade = jsonData.payload?.data?.createTrade?.trade;
 
-            if (!trade)
-                return;
+            if (!trade) return;
 
             const tradeId = trade.id;
 
-
             const tradeItems = trade.tradeItems;
 
-            if (!tradeItems || tradeItems.length === 0)
+            if (!tradeItems || tradeItems.length === 0) return;
+
+            const filteredItems = tradeItems.filter((item: any) =>
+                item.markupPercent <= this.markupPercentage &&
+                item.value >= this.minPrice &&
+                item.value <= this.maxPrice
+            );
+
+            if (filteredItems.length === 0)
                 return;
 
-            const itemToWithdraw: IWithdrawalItem = tradeItems.find((item: any): boolean => {
-                return item.value < 2;
+            const itemToWithdraw = filteredItems[0];
+
+            console.log('Item selected for withdrawal with id:', {
+                price: itemToWithdraw.value,
+                markup: itemToWithdraw.markupPercent
             });
-
-            if (!itemToWithdraw)
-                return;
-
-            console.log('Item selected for withdrawal with id:', tradeId);
-            console.log('Obj:', itemToWithdraw);
 
             await this.executeWithdrawal(tradeId);
 
@@ -52,59 +58,46 @@ export class TradingService {
             throw error;
         }
     }
-
     private async executeWithdrawal(itemId: string): Promise<void> {
-
-        const startTime = Date.now();
-
         try {
             const captchaResponse: string = await this.solveCaptcha();
 
             await this.withdrawItem(itemId, captchaResponse);
 
-            const duration = Date.now() - startTime;
-            console.log(`Time for executing withdrawal: ${duration} ms`);
-
         } catch (error) {
-            console.log("Error while trying to withdraw item. Reason?: ", error);
+            console.log("Error while trying to withdraw item: ", error);
         }
     }
 
     private async solveCaptcha(): Promise<string> {
-
-        const startTime = Date.now();
-
+        const startTime: number = Date.now();
         const captchaSolvingService: CaptchaSolvingService = new CaptchaSolvingService();
+        const taskId: string | null = await captchaSolvingService.createTask();
 
-        return new Promise((resolve, reject): void => {
-            captchaSolvingService.createTask().then((taskId: string | null): void => {
+        if (!taskId)
+            throw new Error('Task id has not been found.');
 
-                console.log("[captcha] trying to resolve captcha...");
+        return this.pollForResult(captchaSolvingService, taskId, 100, startTime, 1000);
+    }
 
-                if (!taskId) {
-                    reject(new Error('Task id hasnt been found.'));
-                    return;
-                }
+    private async pollForResult(captchaSolvingService: CaptchaSolvingService, taskId: string, currentDelay: number, startTime: number, maxDelay: number): Promise<string> {
+        let attempt = 0;
+        const maxAttempts = 10;
 
-                // we need to set the timeout to delay calling function getTaskResult()
-                // this is important because of async procesing for example...
-                // hovewer we can still calculate the timing of the request being procced and then make the timeout lower
-                // deppening on average response from the server
+        while (Date.now() - startTime < maxDelay && attempt < maxAttempts) {
+            try {
+                await new Promise(resolve => setTimeout(resolve, currentDelay));
+                return await captchaSolvingService.getTaskResult(taskId);
+            } catch (error) {
+                attempt++;
+                currentDelay = Math.min(currentDelay * 2, maxDelay - (Date.now() - startTime));
+            }
+        }
 
-                setTimeout((): void => {
-                    captchaSolvingService.getTaskResult(taskId).then((captchaResponse) => {
-                        const duration = Date.now() - startTime;
-                        console.log(`[captcha] Time taken to solve captcha: ${duration} ms`);
-                        resolve(captchaResponse);
-                    }).catch(reject);
-                }, 5000);
-
-            }).catch(reject);
-        })
+        throw new Error('Captcha solve timeout or max attempts reached');
     }
 
     async withdrawItem(itemId: string, captcha: string): Promise<void> {
-        console.log("[withdraw] executed withdraw", JSON.stringify(joinTradesQuery(itemId, captcha)))
         this.socket.send(JSON.stringify(joinTradesQuery(itemId, captcha)));
     }
 }

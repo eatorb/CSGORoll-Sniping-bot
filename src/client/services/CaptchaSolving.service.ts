@@ -31,8 +31,6 @@ export class CaptchaSolvingService {
         try {
             const response: AxiosResponse<ICreateTaskResponse> = await this.httpClient.post<ICreateTaskResponse>(url, data);
 
-            console.log("[captcha] response from captcha with task id", response.data.taskId);
-
             return response.data.taskId;
 
         } catch (error) {
@@ -51,8 +49,6 @@ export class CaptchaSolvingService {
 
         try {
             const response: AxiosResponse<IGetTaskResultResponse> = await this.httpClient.post<IGetTaskResultResponse>(url, data);
-
-            console.log("[captcha] Captcha token", response.data.solution?.gRecaptchaResponse);
 
             if (!response.data.solution?.gRecaptchaResponse)
                 throw new Error('gRecaptchaResponse hasnt been found');
