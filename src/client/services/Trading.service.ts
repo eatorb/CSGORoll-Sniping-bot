@@ -1,19 +1,37 @@
 import Websocket from "ws";
 import {joinTradesQuery} from "../queries/joinTradesQuery";
-import {IWithdrawalItem} from "../models/interfaces/IWithdrawalItem";
 import {CaptchaSolvingService} from "./CaptchaSolving.service";
+
 export class TradingService {
 
-    private readonly data: string;
+    private static instance: TradingService;
+
     private socket: Websocket;
+    private data!: string;
     private markupPercentage: number = 2;
     private minPrice: number = 5;
     private maxPrice: number = 13;
 
-    constructor(data: string, socket: Websocket) {
-        this.data = data;
+    private captchaQueue: Array<{ taskId: string, solution: string | null, timestamp: number }> = [];
+    private readonly maxCaptchaAge: number = 120000;
+    private readonly maxConcurrentCaptchaTasks: number = 10;
+
+    private constructor(socket: Websocket) {
         this.socket = socket;
 
+        setInterval(() => this.maintainCaptchaQueue(), 60000);
+    }
+
+    public static getInstance(socket: Websocket): TradingService {
+
+        if (!TradingService.instance)
+            TradingService.instance = new TradingService(socket);
+
+        return TradingService.instance;
+    }
+
+    public setData(data: string): void {
+        this.data = data;
         this.withdrawLowestPricedItem();
     }
 
@@ -24,7 +42,8 @@ export class TradingService {
             const jsonData = JSON.parse(this.data);
             const trade = jsonData.payload?.data?.createTrade?.trade;
 
-            if (!trade) return;
+            if (!trade)
+                return;
 
             const tradeId = trade.id;
 
@@ -58,26 +77,72 @@ export class TradingService {
             throw error;
         }
     }
+
     private async executeWithdrawal(itemId: string): Promise<void> {
         try {
-            const captchaResponse: string = await this.solveCaptcha();
+            const captchaResponse: string | null = await this.getCaptchaSolution();
+
+            if (!captchaResponse)
+                throw new Error('No captcha response.');
 
             await this.withdrawItem(itemId, captchaResponse);
-
         } catch (error) {
-            console.log("Error while trying to withdraw item: ", error);
+            console.error("Error while trying to withdraw item: ", error);
         }
     }
 
-    private async solveCaptcha(): Promise<string> {
-        const startTime: number = Date.now();
-        const captchaSolvingService: CaptchaSolvingService = new CaptchaSolvingService();
-        const taskId: string | null = await captchaSolvingService.createTask();
+    private async maintainCaptchaQueue(): Promise<void> {
+        this.cleanupExpiredTokens();
 
-        if (!taskId)
-            throw new Error('Task id has not been found.');
+        if (this.captchaQueue.filter(task => !task.solution).length < this.maxConcurrentCaptchaTasks) {
+            await this.addCaptchaTask();
+        }
 
-        return this.pollForResult(captchaSolvingService, taskId, 100, startTime, 1000);
+        await this.resolveCaptchaTasks();
+    }
+
+    private async resolveCaptchaTasks(): Promise<void> {
+        for (const task of this.captchaQueue) {
+            if (!task.solution) {
+                try {
+                    const solution = await this.pollForResult(new CaptchaSolvingService(), task.taskId, 100, Date.now(), 1000);
+                    if (solution) {
+                        task.solution = solution;
+                    }
+                } catch (error) {
+                    console.error('Error polling captcha solution:', error);
+                }
+            }
+        }
+    }
+
+    private async addCaptchaTask(): Promise<void> {
+        const captchaSolvingService = new CaptchaSolvingService();
+        if (this.captchaQueue.filter(task => !task.solution).length < this.maxConcurrentCaptchaTasks) {
+            const taskId: string | null = await captchaSolvingService.createTask();
+            if (taskId) {
+                this.captchaQueue.push({ taskId, solution: null, timestamp: Date.now() });
+                console.log('Captcha task created with ID:', taskId);
+            }
+        }
+    }
+
+    private cleanupExpiredTokens(): void {
+        const currentTime = Date.now();
+        this.captchaQueue = this.captchaQueue.filter(task =>
+            (task.solution && currentTime - task.timestamp < this.maxCaptchaAge) || !task.solution
+        );
+        console.log("Cleaned up expired task.");
+    }
+
+    private async getCaptchaSolution(): Promise<string | null> {
+        const validToken = this.captchaQueue.find(task => task.solution);
+        if (validToken) {
+            this.captchaQueue = this.captchaQueue.filter(task => task !== validToken);
+            return validToken.solution;
+        } else {
+            throw new Error('No valid captcha available.');
+        }
     }
 
     private async pollForResult(captchaSolvingService: CaptchaSolvingService, taskId: string, currentDelay: number, startTime: number, maxDelay: number): Promise<string> {
@@ -87,7 +152,9 @@ export class TradingService {
         while (Date.now() - startTime < maxDelay && attempt < maxAttempts) {
             try {
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
-                return await captchaSolvingService.getTaskResult(taskId);
+                const result = await captchaSolvingService.getTaskResult(taskId);
+                console.log(`Captcha task ${taskId} solved on attempt ${attempt + 1} in ${Date.now() - startTime}ms`);
+                return result;
             } catch (error) {
                 attempt++;
                 currentDelay = Math.min(currentDelay * 2, maxDelay - (Date.now() - startTime));
@@ -97,7 +164,13 @@ export class TradingService {
         throw new Error('Captcha solve timeout or max attempts reached');
     }
 
+
     async withdrawItem(itemId: string, captcha: string): Promise<void> {
-        this.socket.send(JSON.stringify(joinTradesQuery(itemId, captcha)));
+
+        const queryData = joinTradesQuery(itemId, captcha);
+
+        const jsonString: string = JSON.stringify(queryData);
+
+        this.socket.send(jsonString);
     }
 }

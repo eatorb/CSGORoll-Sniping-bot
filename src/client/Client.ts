@@ -12,7 +12,7 @@ export class Client {
     private socketEndpoint: string = 'wss://api.csgoroll.com/graphql';
     private readonly headers: Record<string, string>;
     private subProtocol: string[] = ['graphql-transport-ws'];
-    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:NThsNEQ1WFBMdlZnZkFpTWtoVVp4Y05GU2x0aFdnSE4,consent:yes,action:no,necessary:yes,analytics:yes,advertisement:yes,other:yes; _cfuvid=TV4bWUQMPkSErVJ.Df2vI_URKlXKL2ZHltWg2qLGJOg-1704740811763-0-604800000; cf_clearance=NQs9mYsAV2ZCK4s2rz8WPE3vnG5sWU3KAzLkemeuOm0-1704740812-0-2-4936724d.132ac454.9329131d-0.2.1704740812; session=s%3AujNFOtw6CgClX6JEoxI-L4vM19e7Mc8C.BvdjQXlgOzH5xSNvzuDJsu1jYUPlE94biLGY0RpV3nc; __cf_bm=SF7uzroWN07hiBbH576oqYwkkkaAacMA6vnprIjNs5A-1704997579-1-AbezZwDIPkFhJjalhjNiWeoHW+bSccwL5bErrze4XhDg1wVHlw98S627NYx3dQ5YSkv8RiFh61TY7FT+RBw1100=";
+    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:NThsNEQ1WFBMdlZnZkFpTWtoVVp4Y05GU2x0aFdnSE4,consent:yes,action:no,necessary:yes,analytics:yes,advertisement:yes,other:yes; _cfuvid=TV4bWUQMPkSErVJ.Df2vI_URKlXKL2ZHltWg2qLGJOg-1704740811763-0-604800000; session=s%3AujNFOtw6CgClX6JEoxI-L4vM19e7Mc8C.BvdjQXlgOzH5xSNvzuDJsu1jYUPlE94biLGY0RpV3nc; cf_clearance=Yskai_CGeCiIz7IvuixE135lKxG_S4KqL_yzCDSfRVw-1705000342-0-2-4936724d.9329131d.1e372dad-0.2.1705000342; __cf_bm=c8Ou7QDUUMcGAWPnUfAPo57E.bjxRgfKJQkvKZWuTHU-1705188012-1-AWgwywgwEXRkrZv/BJsRMxw0JhdmwzX3jRXO/RPqV9E4/BON9M0DfnEDJ1MhCM4paPiFtKLafHOk3hLVaLMeQOE=";
     private encryptionService: EncryptionService;
 
     constructor() {

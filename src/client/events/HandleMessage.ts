@@ -2,7 +2,6 @@ import Websocket from "ws";
 import {TradingService} from "../services/Trading.service";
 
 export class HandleMessage {
-
     private readonly socket: Websocket;
     private data: Buffer;
 
@@ -12,9 +11,12 @@ export class HandleMessage {
 
         this.init();
     }
+
     init(): void {
-        new TradingService(this.getData(), this.socket);
+        const tradingService: TradingService = TradingService.getInstance(this.socket);
+        tradingService.setData(this.getData());
     }
+
     private getData(): string {
         return this.data.toString();
     }
