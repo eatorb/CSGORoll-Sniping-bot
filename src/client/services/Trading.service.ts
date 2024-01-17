@@ -1,25 +1,28 @@
 import Websocket from "ws";
 import {joinTradesQuery} from "../queries/joinTradesQuery";
-import {CaptchaSolvingService} from "./CaptchaSolving.service";
-
+import {CaptchaManager} from "../managers/CaptchaManager";
+import { v4 as uuidv4 } from 'uuid';
 export class TradingService {
 
     private static instance: TradingService;
 
+    private captchaManager: CaptchaManager;
+
     private socket: Websocket;
     private data!: string;
+
+    private startTime: number = 0;
+
     private markupPercentage: number = 2;
     private minPrice: number = 5;
-    private maxPrice: number = 13;
-
-    private captchaQueue: Array<{ taskId: string, solution: string | null, timestamp: number }> = [];
-    private readonly maxCaptchaAge: number = 120000;
-    private readonly maxConcurrentCaptchaTasks: number = 10;
+    private maxPrice: number = 50;
+    private uuid: string = "";
 
     private constructor(socket: Websocket) {
         this.socket = socket;
 
-        setInterval(() => this.maintainCaptchaQueue(), 60000);
+        this.captchaManager = new CaptchaManager();
+        this.socket.onmessage = (event: Websocket.MessageEvent) => this.handleSocketMessage(event);
     }
 
     public static getInstance(socket: Websocket): TradingService {
@@ -32,14 +35,16 @@ export class TradingService {
 
     public setData(data: string): void {
         this.data = data;
-        this.withdrawLowestPricedItem();
+        this.withdraw();
     }
 
-    async withdrawLowestPricedItem(): Promise<void> {
-        const startTime = Date.now();
+    async withdraw(): Promise<void> {
+        this.startTime = Date.now();
 
         try {
+
             const jsonData = JSON.parse(this.data);
+
             const trade = jsonData.payload?.data?.createTrade?.trade;
 
             if (!trade)
@@ -49,12 +54,16 @@ export class TradingService {
 
             const tradeItems = trade.tradeItems;
 
-            if (!tradeItems || tradeItems.length === 0) return;
+            if (!tradeItems || tradeItems.length === 0)
+                return;
+
+            // TODO: make advanced filter...
 
             const filteredItems = tradeItems.filter((item: any) =>
                 item.markupPercent <= this.markupPercentage &&
                 item.value >= this.minPrice &&
-                item.value <= this.maxPrice
+                item.value <= this.maxPrice &&
+                !(item.itemVariant.brand === 'Sticker' || item.itemVariant.brand.includes('Pin') || item.itemVariant.brand.includes('Music Kit') || item.itemVariant.brand.includes('Souvenir'))
             );
 
             if (filteredItems.length === 0)
@@ -69,108 +78,55 @@ export class TradingService {
 
             await this.executeWithdrawal(tradeId);
 
-            const duration = Date.now() - startTime;
-            console.log(`Total time for withdrawal process: ${duration} ms`);
-
         } catch (error) {
             console.error('Error in withdrawing item:', error);
             throw error;
         }
+
     }
 
     private async executeWithdrawal(itemId: string): Promise<void> {
         try {
-            const captchaResponse: string | null = await this.getCaptchaSolution();
+            const captchaResponse: string | null = await this.captchaManager.getCaptchaSolution();
 
             if (!captchaResponse)
                 throw new Error('No captcha response.');
 
             await this.withdrawItem(itemId, captchaResponse);
+
         } catch (error) {
             console.error("Error while trying to withdraw item: ", error);
         }
     }
 
-    private async maintainCaptchaQueue(): Promise<void> {
-        this.cleanupExpiredTokens();
-
-        if (this.captchaQueue.filter(task => !task.solution).length < this.maxConcurrentCaptchaTasks) {
-            await this.addCaptchaTask();
-        }
-
-        await this.resolveCaptchaTasks();
-    }
-
-    private async resolveCaptchaTasks(): Promise<void> {
-        for (const task of this.captchaQueue) {
-            if (!task.solution) {
-                try {
-                    const solution = await this.pollForResult(new CaptchaSolvingService(), task.taskId, 100, Date.now(), 1000);
-                    if (solution) {
-                        task.solution = solution;
-                    }
-                } catch (error) {
-                    console.error('Error polling captcha solution:', error);
-                }
-            }
-        }
-    }
-
-    private async addCaptchaTask(): Promise<void> {
-        const captchaSolvingService = new CaptchaSolvingService();
-        if (this.captchaQueue.filter(task => !task.solution).length < this.maxConcurrentCaptchaTasks) {
-            const taskId: string | null = await captchaSolvingService.createTask();
-            if (taskId) {
-                this.captchaQueue.push({ taskId, solution: null, timestamp: Date.now() });
-                console.log('Captcha task created with ID:', taskId);
-            }
-        }
-    }
-
-    private cleanupExpiredTokens(): void {
-        const currentTime = Date.now();
-        this.captchaQueue = this.captchaQueue.filter(task =>
-            (task.solution && currentTime - task.timestamp < this.maxCaptchaAge) || !task.solution
-        );
-        console.log("Cleaned up expired task.");
-    }
-
-    private async getCaptchaSolution(): Promise<string | null> {
-        const validToken = this.captchaQueue.find(task => task.solution);
-        if (validToken) {
-            this.captchaQueue = this.captchaQueue.filter(task => task !== validToken);
-            return validToken.solution;
-        } else {
-            throw new Error('No valid captcha available.');
-        }
-    }
-
-    private async pollForResult(captchaSolvingService: CaptchaSolvingService, taskId: string, currentDelay: number, startTime: number, maxDelay: number): Promise<string> {
-        let attempt = 0;
-        const maxAttempts = 10;
-
-        while (Date.now() - startTime < maxDelay && attempt < maxAttempts) {
-            try {
-                await new Promise(resolve => setTimeout(resolve, currentDelay));
-                const result = await captchaSolvingService.getTaskResult(taskId);
-                console.log(`Captcha task ${taskId} solved on attempt ${attempt + 1} in ${Date.now() - startTime}ms`);
-                return result;
-            } catch (error) {
-                attempt++;
-                currentDelay = Math.min(currentDelay * 2, maxDelay - (Date.now() - startTime));
-            }
-        }
-
-        throw new Error('Captcha solve timeout or max attempts reached');
-    }
-
-
     async withdrawItem(itemId: string, captcha: string): Promise<void> {
 
-        const queryData = joinTradesQuery(itemId, captcha);
+        this.uuid = uuidv4();
+
+        const queryData = joinTradesQuery(this.uuid, itemId, captcha);
 
         const jsonString: string = JSON.stringify(queryData);
 
+        console.log(jsonString);
+
         this.socket.send(jsonString);
     }
+
+    private handleSocketMessage(event: Websocket.MessageEvent): void {
+        try {
+            const message = JSON.parse(event.data.toString());
+
+            if (message.id === this.uuid) {
+
+                console.log(message);
+
+                if (message.payload && message.payload.errors) {
+                    console.log("Errors:", JSON.stringify(message.payload.errors, null, 2));
+                }
+            }
+        } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+        }
+    }
+
 }

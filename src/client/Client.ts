@@ -12,7 +12,7 @@ export class Client {
     private socketEndpoint: string = 'wss://api.csgoroll.com/graphql';
     private readonly headers: Record<string, string>;
     private subProtocol: string[] = ['graphql-transport-ws'];
-    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:NThsNEQ1WFBMdlZnZkFpTWtoVVp4Y05GU2x0aFdnSE4,consent:yes,action:no,necessary:yes,analytics:yes,advertisement:yes,other:yes; _cfuvid=TV4bWUQMPkSErVJ.Df2vI_URKlXKL2ZHltWg2qLGJOg-1704740811763-0-604800000; session=s%3AujNFOtw6CgClX6JEoxI-L4vM19e7Mc8C.BvdjQXlgOzH5xSNvzuDJsu1jYUPlE94biLGY0RpV3nc; cf_clearance=Yskai_CGeCiIz7IvuixE135lKxG_S4KqL_yzCDSfRVw-1705000342-0-2-4936724d.9329131d.1e372dad-0.2.1705000342; __cf_bm=c8Ou7QDUUMcGAWPnUfAPo57E.bjxRgfKJQkvKZWuTHU-1705188012-1-AWgwywgwEXRkrZv/BJsRMxw0JhdmwzX3jRXO/RPqV9E4/BON9M0DfnEDJ1MhCM4paPiFtKLafHOk3hLVaLMeQOE=";
+    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:eXgxcFkxZEpMWWR4bVJHZ2k2ek84VlZUNnNvekc5Q3g,consent:yes,action:yes,necessary:yes,analytics:yes,advertisement:yes,other:yes;session=s%3Axeb56coBQ7t6cpj_OtaWnrkY6zvpLt47.HVgQ2Fvnba0odUNCB6NbsuyTn2EcCrgZYdl%2Fe1fVT54;_cfuvid=Uo8FVQzmzTtldVBGPInSv9GIYYJ7f99OxACSe06lSTo-1705499255698-0-604800000;cf_clearance=2JPVf2CVYJiZVcuUrQZ0_hk5xy.GRHzUVU75g_2Mp40-1705499256-1-AY0aNdtz1xSpOJ/ZwqMHjylwcQGOKu+BJZofQndtz9TK82278C0qvYRO6qlSCIx8Q9DAFeFKxZLNqj5Swq4cAuM=;__cf_bm=RLF2NLVWPTHdfIJcQK7MVNPfda.dDjowslePhpfg5Xc-1705519003-1-AQt4sRqmlEICaJdQJEBBx/akw2uUDWt3rXixNSaskCdQTfee29bJFeT8iprdlHJv12ew8h5+Hu2uk5szer1QhwI=";
     private encryptionService: EncryptionService;
 
     constructor() {
@@ -45,7 +45,8 @@ export class Client {
             new HandleClose(this.socket, code, reason);
 
             // reconnect in case some unexpected close will happen
-            this.connect();
+            this.init();
+            console.log("[ws] reconnecting...");
         });
 
         this.socket.on('error', (error: any) => new HandleError(this.socket, error));

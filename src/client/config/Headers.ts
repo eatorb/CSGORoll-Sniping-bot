@@ -1,4 +1,7 @@
 export const headers = (cookies: string) => {
+
+    console.log("Cookies:", cookies);
+
     return {
         'Host': 'api.csgoroll.com',
         'Connection': 'Upgrade',

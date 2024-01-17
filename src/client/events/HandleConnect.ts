@@ -20,6 +20,7 @@ export class HandleConnect {
         this.sendPingMessage();
         this.sendConnectionInit();
 
+
         this.pingInterval = setInterval(() => {
             this.sendPingMessage();
         }, 60000);

@@ -1,8 +1,8 @@
-import { v4 as uuidv4 } from 'uuid';
 
-export const joinTradesQuery = (tradeId: string, recaptcha: string) => {
+
+export const joinTradesQuery = (uuid: string, tradeId: string, recaptcha: string) => {
     return {
-        id: uuidv4(),
+        id: uuid,
         type: "subscribe",
         payload: {
             variables: {
