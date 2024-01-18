@@ -10,7 +10,7 @@ export class TokenService {
 
     async validateToken(apiToken: string): Promise<boolean> {
         try {
-            const user: user | null = await this.userRepository.findUserByAPIToken(apiToken)
+            const user: user | null = await this.userRepository.findUserByAPIToken(apiToken);
 
             return user !== null;
 

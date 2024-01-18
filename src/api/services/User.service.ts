@@ -4,18 +4,26 @@ import bcrypt from 'bcrypt';
 import jwt, {JwtPayload} from "jsonwebtoken";
 import {PasswordValidationService} from "./PasswordValidation.service";
 import {user} from "@prisma/client";
+import {RecaptchaService} from "./Recaptcha.service";
 
 export class UserService {
 
     private userRepository: UserRepository;
+    private recaptchaService: RecaptchaService;
 
     constructor() {
         this.userRepository = new UserRepository();
+        this.recaptchaService = new RecaptchaService();
     }
 
-    async registerUser(email: string, password: string, termsAccepted: boolean): Promise<{accessToken: string, refreshToken: string}> {
+    async registerUser(email: string, password: string, termsAccepted: boolean, recaptchaToken: string): Promise<{accessToken: string, refreshToken: string}> {
         if (!termsAccepted)
             throw new Error('You have to accept our terms of service.');
+
+        const isRecaptchaValid: boolean = await this.recaptchaService.verifyRecaptchaToken(recaptchaToken, 'register');
+
+        if (!isRecaptchaValid)
+            throw new Error('Failed to solve a recaptcha.');
 
         PasswordValidationService.validate(password);
 
@@ -32,7 +40,13 @@ export class UserService {
         return {accessToken, refreshToken};
     }
 
-    async loginUser(email: string, password: string, remember: boolean): Promise<{accessToken: string, refreshToken: string}> {
+    async loginUser(email: string, password: string, remember: boolean, recaptchaToken: string): Promise<{accessToken: string, refreshToken: string}> {
+
+        const isRecaptchaValid: boolean = await this.recaptchaService.verifyRecaptchaToken(recaptchaToken, 'login');
+
+        if (!isRecaptchaValid)
+            throw new Error('Failed to solve a recaptcha.');
+
         const user: user | null = await this.userRepository.findByEmail(email);
 
         if (!user || !(await bcrypt.compare(password, user.password)))
@@ -48,6 +62,7 @@ export class UserService {
 
         return {accessToken, refreshToken};
     }
+
     async refreshToken(refreshToken: string): Promise<{accessToken: string}> {
 
         const user: user | null = await this.userRepository.findRefreshToken(refreshToken);

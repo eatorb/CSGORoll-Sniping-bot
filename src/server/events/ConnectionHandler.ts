@@ -2,22 +2,11 @@ import Websocket from "ws";
 import {TokenService} from "../services/Token.Service";
 import {ConnectionState} from "../models/enum/ConnectionState";
 import {WebSocketMessage} from "../models/interfaces/WebSocketMessage";
-
-
-/*
-    The server flow looks like this:
-
-        - client connects to the server.
-        - clients sends a first ping message that looks like this { connection: 'ping' }
-        - server responds with a valid message that looks like this { connection: 'pong }
-        - if the server doesn't get the first message in one minute or its different, the connection will be closed.
-        - after that, client needs to send a { connection: 'ping' } each minute, as a verification, that the client is still connected to the server
-        - after that, the authentication will come.
-        - the server expects { authentication: 'api-token' }
-        - after that it validates it and start sending the correct messages from csgo roll client.
- */
+import {MessageType} from "../models/enum/MessageType";
+import {CloseMessageType} from "../models/enum/CloseMessageType";
 
 export class ConnectionHandler {
+
     private ws: Websocket;
     private pingTimeout!: NodeJS.Timeout;
     private tokenService: TokenService;
@@ -34,11 +23,10 @@ export class ConnectionHandler {
 
     private setupEvents(): void {
         this.ws.on('message', (message: Buffer) => this.handleMessage(message));
+
         this.ws.on('close', () => this.clearPingTimeout());
-        this.ws.on('error', (error: Error): void => {
-            console.error('WebSocket error:', error);
-            this.clearPingTimeout();
-        });
+
+        this.ws.on('error', (error: Error): void => this.handleError(error));
     }
 
     private async handleMessage(message: Buffer): Promise<void> {
@@ -59,21 +47,27 @@ export class ConnectionHandler {
                     break;
             }
         } catch {
-            this.closeConnection('Invalid message format.');
+            this.closeConnection(CloseMessageType.InvalidMessageFormat);
         }
+    }
+
+    private handleError(error: Error): void {
+        console.error(error);
+        this.clearPingTimeout();
     }
 
     private parseMessage(message: Buffer): WebSocketMessage {
         try {
             return JSON.parse(message.toString());
         } catch (error) {
-            throw new Error('Error while parsing message.')
+            throw new Error(CloseMessageType.ErrorParsingMessage)
         }
     }
 
     private handleFirstMessage(data: WebSocketMessage): void {
-        if (data.connection !== 'ping') {
-            this.closeConnection('Invalid first message.');
+
+        if (data.connection !== MessageType.Ping) {
+            this.closeConnection(CloseMessageType.InvalidFirstMessage);
             return;
         }
 
@@ -84,8 +78,9 @@ export class ConnectionHandler {
     }
 
     private async handleTokenValidation(data: WebSocketMessage): Promise<void> {
+
         if (!data.authentication) {
-            this.closeConnection('API token is required.');
+            this.closeConnection(CloseMessageType.APITokenRequired);
             return;
         }
 
@@ -93,7 +88,7 @@ export class ConnectionHandler {
         const isTokenValid: boolean = await this.tokenService.validateToken(data.authentication);
 
         if (!isTokenValid) {
-            this.closeConnection('Invalid API token.');
+            this.closeConnection(CloseMessageType.InvalidAPIToken);
             return;
         }
 
@@ -101,19 +96,19 @@ export class ConnectionHandler {
     }
 
     private handleRegularOperation(data: WebSocketMessage): void {
-        if (data.connection === 'ping') {
+        if (data.connection === MessageType.Ping) {
             this.ws.send(this.sendPongMessage());
             this.resetPingTimeout();
         }
     }
 
     private sendPongMessage(): string {
-        return JSON.stringify({connection: 'pong'});
+        return JSON.stringify({ connection: MessageType.Pong });
     }
 
     private resetPingTimeout(): void {
         this.clearPingTimeout();
-        this.pingTimeout = setTimeout(() => this.closeConnection('Client has timed out.'), 60000);
+        this.pingTimeout = setTimeout(() => this.closeConnection(CloseMessageType.ClientTimedOut), 60000);
     }
 
     private clearPingTimeout(): void {

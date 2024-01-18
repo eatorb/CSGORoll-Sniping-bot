@@ -42,5 +42,24 @@ model user {
   refreshToken String?    @db.Text
   apiToken     String?    @db.Text
   cookies      cookies[]
+  filter       filter[]
   instance     instance[]
+}
+
+model filter {
+  filterId            Int   @id
+  userId              Int?
+  minPrice            Int?
+  maxPrice            Int?
+  maxMarkupPercentage Int?
+  excludeSticker      Int   @default(0) @db.SmallInt
+  excludepin          Int   @default(0) @db.SmallInt
+  excludeMusicKit     Int   @default(0) @db.SmallInt
+  excludeSouvenir     Int   @default(0) @db.SmallInt
+  excludeStatTrak     Int   @default(0) @db.SmallInt
+  excludeCases        Int?  @default(0) @db.SmallInt
+  excludeAgents       Int?  @default(0) @db.SmallInt
+  user                user? @relation(fields: [userId], references: [UserID], onDelete: Restrict, onUpdate: Restrict, map: "filter_ibfk_1")
+
+  @@index([userId], map: "userId")
 }

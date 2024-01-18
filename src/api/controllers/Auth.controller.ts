@@ -6,18 +6,17 @@ import {Request, Response} from "express";
 import {IUser} from "../models/interfaces/IUser";
 import {accessTokenCookie, refreshTokenCookie} from "../config/Config";
 
-
 export default {
     async registerUser(request: Request, response: Response): Promise<Response | undefined> {
         try {
-            const {email, password, termsAccepted} = request.body as Partial<IUser>;
+            const {email, password, termsAccepted, recaptchaToken} = request.body as Partial<IUser & { recaptchaToken: string }>;
 
-            if (!email || !password || termsAccepted === undefined)
+            if (!email || !password || termsAccepted === undefined || !recaptchaToken)
                 return new ErrorResponse(response, ErrorMessage.requestIncomplete, 400, ErrorCode.requestIncomplete, new Date()).sendAll();
 
             const userService: UserService = new UserService();
 
-            const {accessToken, refreshToken} = await userService.registerUser(email, password, termsAccepted);
+            const {accessToken, refreshToken} = await userService.registerUser(email, password, termsAccepted, recaptchaToken);
 
             // send both access token and refresh token in cookies
             response.cookie('refreshToken', refreshToken, refreshTokenCookie);
@@ -40,14 +39,14 @@ export default {
 
     async userLogin(request: Request, response: Response): Promise<Response | undefined> {
         try {
-            const {email, password, remember} = request.body as Partial<IUser>;
+            const {email, password, remember, recaptchaToken} = request.body as Partial<IUser & { recaptchaToken: string }>;
 
-            if (!email || !password || remember === undefined)
+            if (!email || !password || remember === undefined || !recaptchaToken)
                 return new ErrorResponse(response, ErrorMessage.requestIncomplete, 400, ErrorCode.requestIncomplete, new Date()).sendAll();
 
             const userService: UserService = new UserService();
 
-            const {accessToken, refreshToken} = await userService.loginUser(email, password, remember);
+            const {accessToken, refreshToken} = await userService.loginUser(email, password, remember, recaptchaToken);
 
             // send both access token and refresh token in cookies
             response.cookie('refreshToken', refreshToken, refreshTokenCookie);

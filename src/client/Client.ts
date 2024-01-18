@@ -45,8 +45,8 @@ export class Client {
             new HandleClose(this.socket, code, reason);
 
             // reconnect in case some unexpected close will happen
-            this.init();
-            console.log("[ws] reconnecting...");
+            this.connect();
+            new HandleConnect(this.socket);
         });
 
         this.socket.on('error', (error: any) => new HandleError(this.socket, error));
