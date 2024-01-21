@@ -47,13 +47,13 @@ model user {
 }
 
 model filter {
-  filterId            Int   @id
+  filterId            Int   @id @unique(map: "filterId") @default(autoincrement())
   userId              Int?
   minPrice            Int?
   maxPrice            Int?
   maxMarkupPercentage Int?
   excludeSticker      Int   @default(0) @db.SmallInt
-  excludepin          Int   @default(0) @db.SmallInt
+  excludePin          Int   @default(0) @db.SmallInt
   excludeMusicKit     Int   @default(0) @db.SmallInt
   excludeSouvenir     Int   @default(0) @db.SmallInt
   excludeStatTrak     Int   @default(0) @db.SmallInt
