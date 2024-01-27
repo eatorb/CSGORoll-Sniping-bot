@@ -14,6 +14,7 @@
 
 
 export interface IWithdrawalItem {
+    tradeId: string;
     id: string;
     marketName: string;
     value: number;

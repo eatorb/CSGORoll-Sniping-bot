@@ -29,7 +29,8 @@ export class HandleMessage {
 
     init(): void {
         const tradingService: TradingService = TradingService.getInstance(this.socket);
-        tradingService.setData(this.getData());
+
+        tradingService.handleNewTradeData(this.getData());
     }
 
     private getData(): string {

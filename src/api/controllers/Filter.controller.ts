@@ -19,12 +19,36 @@ import {ErrorResponse} from "../handlers/ErrorHandler";
 import {ErrorMessage} from "../models/enums/ErrorMessage";
 import {ErrorCode} from "../models/enums/ErrorCode";
 import {FilterService} from "../services/Filter.service";
+import {filter} from "@prisma/client";
 
 export default {
 
     async getFilter(request: Request, response: Response): Promise<Response | undefined> {
+        try {
 
-        return response;
+            const userId: number | undefined = request.user?.userId;
+
+            if (!userId)
+                return new ErrorResponse(response, ErrorMessage.unauthorized, 401, ErrorCode.unauthorized, new Date()).sendAll();
+
+            const filterService: FilterService = new FilterService();
+
+            const filter: filter = await filterService.findFilter(userId);
+
+            return response.status(200).send({
+                success: "Filters has been fetched",
+                filter
+            });
+
+        } catch (error) {
+            if (error instanceof Error) {
+                return new ErrorResponse(response, error.message, 500, ErrorCode.serverError, new Date())
+                    .sendAll();
+            } else {
+                return new ErrorResponse(response, ErrorMessage.unknownServerError, 500, ErrorCode.serverError, new Date())
+                    .sendAll();
+            }
+        }
     },
 
     async createFilter(request: Request, response: Response): Promise<Response | undefined> {
@@ -67,8 +91,9 @@ export default {
     },
 
     async deleteFilter(request: Request, response: Response): Promise<Response | undefined> {
-
         try {
+
+
 
         } catch (error) {
             if (error instanceof Error) {
@@ -82,7 +107,19 @@ export default {
     },
 
     async updateFilter(request: Request, response: Response): Promise<Response | undefined> {
-        return response;
+        try {
+
+
+
+        } catch (error) {
+            if (error instanceof Error) {
+                return new ErrorResponse(response, error.message, 500, ErrorCode.serverError, new Date())
+                    .sendAll();
+            } else {
+                return new ErrorResponse(response, ErrorMessage.unknownServerError, 500, ErrorCode.serverError, new Date())
+                    .sendAll();
+            }
+        }
     }
 
 }

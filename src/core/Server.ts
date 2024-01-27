@@ -45,7 +45,7 @@ export class Server {
 
         this.WebsocketServer = new WebsocketServer(4200);
 
-        //new Client();
+        new Client();
     }
 
     private initMiddlewares(): void {

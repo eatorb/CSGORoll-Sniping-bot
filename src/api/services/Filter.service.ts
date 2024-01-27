@@ -45,10 +45,20 @@ export class FilterService {
 
 
     }
-    async updateFilter() {
+    async updateFilter(): Promise<void> {
 
     }
-    async findFilter(userId: number): Promise<filter | null> {
-        return await this.filterRepository.findFilter(userId);
+
+    async deleteFilter(): Promise<void> {
+
+    }
+    async findFilter(userId: number): Promise<filter> {
+
+        const filter: filter | null= await this.filterRepository.findFilter(userId);
+
+        if (!filter)
+            throw new Error('No filter has been found');
+
+        return filter;
     }
 }

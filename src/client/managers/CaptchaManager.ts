@@ -36,33 +36,27 @@ export class CaptchaManager {
     }
 
     async maintainCaptchaQueue(): Promise<void> {
-
         this.cleanupExpiredTokens();
 
-        const tasksToBeAdded: number = this.maxConcurrentCaptchaTasks - this.captchaQueue.filter(task => !task.solution).length;
+        const pendingTasks = this.captchaQueue.filter(task => !task.solution).length;
+        const tasksToBeAdded = this.maxConcurrentCaptchaTasks - pendingTasks;
 
-        for (let i = 0; i < Math.min(3, tasksToBeAdded); i++) {
+        for (let i = 0; i < tasksToBeAdded; i++) {
             await this.addCaptchaTask();
         }
 
-        await this.resolveCaptchaTasks();
-
+        this.resolveCaptchaTasks();
     }
 
     private async addCaptchaTask(): Promise<void> {
 
-        if (this.captchaQueue.some(task => !task.solution) || this.captchaQueue.length >= this.maxConcurrentCaptchaTasks)
+        if (this.captchaQueue.length >= this.maxConcurrentCaptchaTasks)
             return;
 
-        const taskId: string | null = await this.captchaSolvingService.createTask();
+        const taskId = await this.captchaSolvingService.createTask();
 
-        if (!taskId)
-            throw new Error('No captcha task id found.');
-
-        this.captchaQueue.push({ taskId, solution: null, timestamp: Date.now() });
-
-
-        await this.resolveCaptchaTasks();
+        if (taskId)
+            this.captchaQueue.push({ taskId, solution: null, timestamp: Date.now() });
 
     }
 
@@ -74,13 +68,12 @@ export class CaptchaManager {
                 try {
                     const solution: string = await this.pollForResult(task.taskId, 100, Date.now(), 1000);
 
-                    if (solution) {
+                    if (solution)
                         task.solution = solution;
-                    }
 
 
-                } catch (error) {
-                    console.error('Error polling captcha solution:', error);
+                } catch {
+
                 }
             }
         }
@@ -101,9 +94,7 @@ export class CaptchaManager {
             const validToken = this.captchaQueue.find(task => task.solution);
             if (validToken) {
                 this.captchaQueue = this.captchaQueue.filter(task => task !== validToken);
-
-                this.addCaptchaTask().catch(error => console.error('Error adding new captcha task:', error));
-
+                this.regenerateCaptchaTask().catch(error => console.error('Error regenerating captcha task:', error));
                 return validToken.solution;
             } else {
                 attempts++;
@@ -114,11 +105,18 @@ export class CaptchaManager {
         throw new Error('No valid captcha available after retries.');
     }
 
+    private async regenerateCaptchaTask(): Promise<void> {
+        try {
+            await this.addCaptchaTask();
+        } catch (error) {
+            console.error('Error regenerating captcha task:', error);
+        }
+    }
+
 
     async pollForResult(taskId: string, currentDelay: number, startTime: number, maxDelay: number): Promise<string> {
-        let attempt: number = 0;
-
-        const maxAttempts: number = 10;
+        let attempt = 0;
+        const maxAttempts = 10;
 
         while (Date.now() - startTime < maxDelay && attempt < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, currentDelay));
@@ -127,7 +125,7 @@ export class CaptchaManager {
                 return await this.captchaSolvingService.getTaskResult(taskId);
             } catch (error) {
                 attempt++;
-                currentDelay *= 2;
+                currentDelay *= 2; // Exponential backoff
             }
         }
 

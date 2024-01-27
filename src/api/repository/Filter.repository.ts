@@ -59,4 +59,18 @@ export class FilterRepository {
             throw new Error('Error while trying to find a filter.')
         }
     }
+
+    async deleteFilter(userId: number): Promise<void> {
+        try {
+
+            await this.prisma.filter.deleteMany({
+                where: {
+                    userId: userId
+                }
+            })
+
+        } catch (error) {
+            throw new Error('Error while trying to delete a filter.');
+        }
+    }
 }
