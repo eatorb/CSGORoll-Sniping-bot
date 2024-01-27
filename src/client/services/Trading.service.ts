@@ -18,6 +18,7 @@ import {joinTradesQuery} from "../queries/joinTradesQuery";
 import {CaptchaManager} from "../managers/CaptchaManager";
 import { v4 as uuidv4 } from 'uuid';
 import {IWithdrawalItem} from "../models/interfaces/IWithdrawalItem";
+import axios from "axios";
 
 
 export class TradingService {
@@ -28,12 +29,14 @@ export class TradingService {
     private socket: Websocket;
 
     private markupPercentage: number = 2;
-    private minPrice: number = 5;
+    private minPrice: number = 10;
     private maxPrice: number = 50;
 
     private uuid: string = "";
 
     private preprocessedItems: IWithdrawalItem[] = [];
+
+    private readonly discordWebhookUrl: string = 'https://discord.com/api/webhooks/1200881992129052823/hq3_w1hOwGvoO4irmf4yl1iLQ7Xc8QX4gS2hQjiDfLb0jBL8IGDka4lEBiorel9VWOhd';
 
     private constructor(socket: Websocket) {
         this.socket = socket;
@@ -109,16 +112,14 @@ export class TradingService {
     }
 
     async withdraw(): Promise<void> {
+
         if (this.preprocessedItems.length === 0)
             return;
 
         const itemToWithdraw: IWithdrawalItem = this.preprocessedItems[0];
 
-        console.log(`Attempting to withdraw item: ${JSON.stringify(itemToWithdraw)}`);
-
         try {
             await this.executeWithdrawal(itemToWithdraw.tradeId);
-            console.log(`Withdrawal initiated for item ID: ${itemToWithdraw.tradeId}`);
         } catch (error) {
             console.error('Error in withdrawing item:', error);
             throw error;
@@ -133,7 +134,6 @@ export class TradingService {
                 throw new Error('No captcha response.');
 
             await this.withdrawItem(itemId, captchaResponse);
-            console.log(`Withdrawal executed for item ID: ${itemId}`);
 
         } catch (error) {
             console.error("Error while trying to withdraw item: ", error);
@@ -165,9 +165,9 @@ export class TradingService {
                 console.log('-----------------------------');
 
             } else if (message?.payload?.data) {
-                console.log("---- Trade Completed. -------");
-                console.log('Item successfully sniped.');
-                console.log('-----------------------------');
+                this.sendDiscordNotification(this.preprocessedItems[0]).catch(error => {
+                    console.log(error);
+                    });
             } else {
                 return;
             }
@@ -175,4 +175,29 @@ export class TradingService {
             console.error('Error parsing WebSocket message:', error);
         }
     }
+
+    private async sendDiscordNotification(item: IWithdrawalItem): Promise<void> {
+        const embed = {
+            title: "Trade Completed",
+            description: `Item successfully sniped: **${item.itemVariant.name}** with ID: **${item.id}**`,
+            color: 14862847,
+            fields: [
+                { name: "Value", value: item.value.toString(), inline: true },
+                { name: "Markup Percent", value: item.markupPercent.toString(), inline: true }
+            ],
+            timestamp: new Date().toISOString(),
+            image: { url: item.itemVariant.iconUrl }
+        };
+
+        const messageContent = { embeds: [embed] };
+
+        try {
+            await axios.post(this.discordWebhookUrl, messageContent, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+        } catch (error) {
+            console.error("Failed to send notification to Discord:", error);
+        }
+    }
+
 }

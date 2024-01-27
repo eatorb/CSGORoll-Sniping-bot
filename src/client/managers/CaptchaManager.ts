@@ -97,6 +97,7 @@ export class CaptchaManager {
                 this.regenerateCaptchaTask().catch(error => console.error('Error regenerating captcha task:', error));
                 return validToken.solution;
             } else {
+                await this.regenerateCaptchaTask();
                 attempts++;
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
@@ -106,10 +107,15 @@ export class CaptchaManager {
     }
 
     private async regenerateCaptchaTask(): Promise<void> {
-        try {
-            await this.addCaptchaTask();
-        } catch (error) {
-            console.error('Error regenerating captcha task:', error);
+        if (this.captchaQueue.length < this.maxConcurrentCaptchaTasks) {
+            try {
+                const taskId = await this.captchaSolvingService.createTask();
+                if (taskId) {
+                    this.captchaQueue.push({ taskId, solution: null, timestamp: Date.now() });
+                }
+            } catch (error) {
+                console.error('Error regenerating captcha task:', error);
+            }
         }
     }
 
