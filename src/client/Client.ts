@@ -26,11 +26,14 @@ export class Client {
     private socketEndpoint: string = 'wss://api.csgoroll.com/graphql';
     private readonly headers: Record<string, string>;
     private subProtocol: string[] = ['graphql-transport-ws'];
-    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:eXgxcFkxZEpMWWR4bVJHZ2k2ek84VlZUNnNvekc5Q3g,consent:yes,action:yes,necessary:yes,analytics:yes,advertisement:yes,other:yes;intercom-device-id-u1yr9red=148b38a8-473c-4d03-98d0-c1da9e412990;cfuvid=H4drlWBKTxKGtamD6v1C.1r_iJ0dlBBqZM_75AK0eU-1705838098066-0-604800000;amp_2bba79=L_FbOjBijwfA-b-tP3DKdT.VlhObGNqb3hOekl3T0Rj..1hkr2f0tj.1hkr2f6bh.3.0.3;session=s%3A1A3POyI8pMPuiS6foPzuP46pTBf5cbyK.lGdiO2NyZ%2FHMKgeR20tketZBfHY8EZvZLEiySNE1Vzw;intercom-session-u1yr9red=RWVBSEVkcHJISmxvSEs1WmUyUWh1VEVlRm5DQ3pFYjM0elVuLzdoMkpjb3R5U1drRGtUb2hzb29OZ2JlaW9vaS0tYUpnaExQajdIRXZsVXFwV3E1Y0doZz09--5d6eeac894f2f561d3214dc2dc7bda7b1d563ebf;cf_clearance=5MgasWgKTxGGfKOxizEOFg_o1rvQtFeXOx6_9wpAl2I-1706362791-1-AWSvHp0bLYP8bmo5Lt9EBBhkV9G39rc9qkGUCXKkraVWRZG4tP3wlfqVpeLwHnEZEMoYsdEtw/IMfL3W15oxmRw=;__cf_bm=yGy4wpPSaf4oHTsjOSb9xmWzFKvBfiqC9O8H51QCgqM-1706382909-1-ASveJeLPraOOB3E6oTnFr67bOf89K76RlAK3kc8J/bqynsEAYOGNMEmtA+UiqA5CTsy59kV8RVA6yxEJC+PAYIE=";
+    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:NThsNEQ1WFBMdlZnZkFpTWtoVVp4Y05GU2x0aFdnSE4,consent:yes,action:no,necessary:yes,analytics:yes,advertisement:yes,other:yes;data=2504239b2fe516d3e14805694e3429be;_cfuvid=hivn0lLifbeIsEc.qwnY7ttzMg6jAQiLahAiMJUnqns-1705512740921-0-604800000;session=s%3AQREALkQGfEQM6DVuG2jl1skjlbeSQXNR.eNML9STrf4qvNmXjdYO8PPgPAVU3lsQwXvlAOlfcniQ;__cf_bm=cdsYDqf..A_1YNtOGkVVu3mYpXbhNV1TMSw9vXA.LOw-1706990546-1-AaqG5qvkhD63GJ2B2nB2GCFZ7CH16jfVYWj81WK8tEbP1RVLT60oEhO2vMnMfaZC5By1C3p1fcxPnNJTGWo8HY0=;cf_clearance=CxqyfeavizD2FMjTTMv6dN9a8C7L7zRXrYKdGht9fdk-1706990547-1-AX4SPxVdnmMGaxaJqHGLfXkV9n6dJ9gdkYXFJU0MB064VbEbzeXUXbCjLHLEO8Ne/9Ur6drV5GK5jcHglwFEAFk=";
     private encryptionService: EncryptionService;
 
     private reconnectAttempts: number = 0;
     private readonly maxReconnectAttempts: number = 5;
+
+    private reconnectDelay: number = 1000;
+    private maxReconnectDelay: number = 16000;
 
     constructor() {
         this.encryptionService = new EncryptionService(process.env.ENC_SECRET_KEY!);
@@ -74,12 +77,11 @@ export class Client {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             setTimeout((): void => {
                 this.reconnectAttempts++;
-                console.log(`Attempting to reconnect... (Attempt ${this.reconnectAttempts})`);
+                console.log("Attempting to reconnect to websocket... (attempt: ", this.reconnectAttempts, ")");
                 this.connect();
-            }, Math.pow(2, this.reconnectAttempts) * 1000);
+            }, Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), this.maxReconnectDelay));
         } else {
-            console.error("Max reconnection attempts reached. Stopping reconnection attempts.");
+            console.log("Max reconnection attempts reached, stopping reconnecting.");
         }
     }
-
 }

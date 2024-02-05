@@ -19,6 +19,7 @@ import {CaptchaManager} from "../managers/CaptchaManager";
 import { v4 as uuidv4 } from 'uuid';
 import {IWithdrawalItem} from "../models/interfaces/IWithdrawalItem";
 import axios from "axios";
+import {autoJoinTradeQuery} from "../queries/autoJoinQuery";
 
 
 export class TradingService {
@@ -28,9 +29,9 @@ export class TradingService {
 
     private socket: Websocket;
 
-    private markupPercentage: number = 2;
-    private minPrice: number = 10;
-    private maxPrice: number = 50;
+    private markupPercentage: number = 10;
+    private minPrice: number = 1;
+    private maxPrice: number = 5;
 
     private uuid: string = "";
 
@@ -96,7 +97,7 @@ export class TradingService {
     }
 
     private preprocessTradeItems(tradeItems: IWithdrawalItem[]): IWithdrawalItem[] {
-        return tradeItems.filter(item => this.isValidItem(item));
+        return tradeItems.filter((item: IWithdrawalItem) => this.isValidItem(item));
     }
 
     private isValidItem(item: IWithdrawalItem): boolean {
@@ -116,10 +117,11 @@ export class TradingService {
         if (this.preprocessedItems.length === 0)
             return;
 
-        const itemToWithdraw: IWithdrawalItem = this.preprocessedItems[0];
-
         try {
-            await this.executeWithdrawal(itemToWithdraw.tradeId);
+            const withdrawalPromises = this.preprocessedItems.map(item =>
+                this.executeWithdrawal(item.tradeId)
+            );
+            await Promise.all(withdrawalPromises);
         } catch (error) {
             console.error('Error in withdrawing item:', error);
             throw error;
@@ -144,11 +146,18 @@ export class TradingService {
 
         this.uuid = uuidv4();
 
-        const queryData = joinTradesQuery(this.uuid, itemId, captcha);
+        const queryData = autoJoinTradeQuery(this.uuid, itemId,);
+
+        //const queryData = joinTradesQuery(this.uuid, itemId, captcha);
 
         const jsonString: string = JSON.stringify(queryData);
 
-        this.socket.send(jsonString);
+        try {
+            this.socket.send(jsonString);
+        } catch (error) {
+            console.log("Error while trying to send a trade.")
+        }
+
     }
 
     private handleSocketMessage(event: Websocket.MessageEvent): void {
@@ -160,14 +169,20 @@ export class TradingService {
 
             if (message?.payload?.errors) {
                 console.log("----- Trade not completed. ------");
-                const errors = message.payload.errors.map((error: any) => error.message).join(', ');
-                console.log("Errors:", errors);
-                console.log('-----------------------------');
 
-            } else if (message?.payload?.data) {
+                message.payload.errors.forEach((error: { locations: any[]; }, index: any) => {
+                    console.log(`Error ${index}:`, error);
+                    if (error.locations) {
+                        error.locations.forEach((loc, locIndex) => {
+                            console.log(`Location ${locIndex}: Line ${loc.line}, Column ${loc.column}`);
+                        });
+                    }
+                });
+            }
+ else if (message?.payload?.data) {
                 this.sendDiscordNotification(this.preprocessedItems[0]).catch(error => {
                     console.log(error);
-                    });
+                });
             } else {
                 return;
             }
@@ -179,7 +194,7 @@ export class TradingService {
     private async sendDiscordNotification(item: IWithdrawalItem): Promise<void> {
         const embed = {
             title: "Trade Completed",
-            description: `Item successfully sniped: **${item.itemVariant.name}** with ID: **${item.id}**`,
+            description: `Item successfully sniped: **${item.itemVariant.name.toString()}**`,
             color: 14862847,
             fields: [
                 { name: "Value", value: item.value.toString(), inline: true },

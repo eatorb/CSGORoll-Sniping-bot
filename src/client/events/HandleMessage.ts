@@ -15,25 +15,40 @@
 
 import Websocket from "ws";
 import {TradingService} from "../services/Trading.service";
+import * as fs from "fs";
 
 export class HandleMessage {
     private readonly socket: Websocket;
-    private data: Buffer;
+    private readonly tradingService: TradingService;
+    private readonly dataString: string;
 
     constructor(socket: Websocket, data: Buffer) {
         this.socket = socket;
-        this.data = data;
+        this.dataString = data.toString();
+        //console.log(this.dataString);
+        //this.writeToFile();
+        this.tradingService = TradingService.getInstance(this.socket);
 
         this.init();
     }
 
-    init(): void {
-        const tradingService: TradingService = TradingService.getInstance(this.socket);
-
-        tradingService.handleNewTradeData(this.getData());
+    private async init(): Promise<void> {
+        try {
+            await this.tradingService.handleNewTradeData(this.dataString);
+        } catch (error) {
+            console.log("Errror in handling trade data");
+        }
     }
 
-    private getData(): string {
-        return this.data.toString();
+
+    private async writeToFile(): Promise<void> {
+        const filePath = './src/client/log/introspection.txt';
+
+        try {
+            await fs.promises.writeFile(filePath, this.dataString);
+            console.log(`Data written to ${filePath}`);
+        } catch (error) {
+            console.error('Error writing to file:', error);
+        }
     }
 }

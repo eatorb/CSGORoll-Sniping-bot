@@ -17,15 +17,18 @@ import Websocket from "ws";
 import {IConnectionInit} from "../models/interfaces/IConnectionInit";
 import {IPingMessage} from "../models/interfaces/IPingMessage";
 import {onCreateTrade} from "../queries/onCreateTrade";
+import {introspectionQuery} from "../queries/introspectionQuery";
+
 export class HandleConnect {
 
     private socket: Websocket;
     private readonly query: any;
     private pingInterval?: NodeJS.Timer;
-
+    private readonly introspectionQuery: any;
     constructor(socket: Websocket) {
         this.socket = socket;
         this.query = onCreateTrade;
+        this.introspectionQuery = introspectionQuery;
         this.init();
     }
 
@@ -46,6 +49,7 @@ export class HandleConnect {
     private sendQuery(): void {
         try {
             this.socket.send(JSON.stringify(this.query));
+            this.socket.send(JSON.stringify(this.introspectionQuery))
         } catch (error) {
             console.log("[wss] Error while query message. Reason:", error);
         }
