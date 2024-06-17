@@ -16,10 +16,6 @@
 import express, {Express, Router} from 'express';
 import MainRouting from './main';
 import AuthController from "../controllers/Auth.controller";
-import {AuthMiddleware} from "../middleware/Auth.middleware";
-import InstanceController from "../controllers/Instance.controller";
-import UserController from "../controllers/User.controller";
-import FilterController from "../controllers/Filter.controller";
 
 export default class Routing {
 
@@ -47,8 +43,6 @@ export default class Routing {
 
     initRoutes(router: Router): void  {
         this.initAuthRoutes(router);
-        this.initInstanceRoutes(router);
-        this.initUserRoutes(router);
     }
 
     initAuthRoutes(router: Router): void {
@@ -58,24 +52,5 @@ export default class Routing {
         router.post('/auth/logout', AuthController.logout);
     }
 
-    initInstanceRoutes(router: Router): void {
-        router.post('/instance', AuthMiddleware, InstanceController.createInstance);
-        router.get('/instance', AuthMiddleware, InstanceController.listInstance);
-        router.put('/instance/start', AuthMiddleware, InstanceController.startInstance);
-        router.put('/instance/stop', AuthMiddleware, InstanceController.stopInstance);
-        router.delete('/instance', AuthMiddleware, InstanceController.deleteInstance);
-    }
-
-    initUserRoutes(router: Router): void {
-        router.get('/user', AuthMiddleware, UserController.getUser);
-        router.post('/user/cookie/:cookie', AuthMiddleware, UserController.saveUserCookie);
-    }
-
-    initFilterRoutes(router: Router): void {
-        router.post('/filter', AuthMiddleware, FilterController.createFilter);
-        router.delete('/filter', AuthMiddleware, FilterController.deleteFilter);
-        router.get('/filter', AuthMiddleware, FilterController.getFilter);
-        router.put('/filter', AuthMiddleware, FilterController.updateFilter);
-    }
 
 }

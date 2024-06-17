@@ -13,12 +13,13 @@
  */
 
 
-import express, {Response, Request, Express, NextFunction} from "express";
+import express, {Express, NextFunction, Request, Response} from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import Routing from "../api/routers/routing";
 import {WebsocketServer} from "../server/WebsocketServer";
 import {Client} from "../client/Client";
+import {EndpointType} from "../client/models/enums/EndpointType";
 
 
 // TODO: refactor this...
@@ -45,7 +46,7 @@ export class Server {
 
         this.WebsocketServer = new WebsocketServer(4200);
 
-        new Client();
+        new Client(EndpointType.CSGOROLL_TR, 'api.csgorolltr.com', 'https://www.csgorolltr.com', 'cf_clearance=IIDmfC8VJEb.aLPQBx0bR1QzMAs9yV6JQsnGyjFdo8I-1707485444-1-ARb2zT4xYSlCk/kW02/V3Gl9cNcQ4Tdwnd0QgJpMTzZnK64xSpwgYHyD66X2nj765NrzCA0IGe7N+LAgLRmQ5SM=;session=s%3Ap5L7Q6BM_dS-ev0VLxtK4zhjb-Q4RnT_.OGTBv1gHCABfJhUnl7HctAIGrdTjWCMkgNbUAQBQJ0Y;__cf_bm=_khLPt4IkVX1FJVs5JuScM65REnwlxWeByFpwTHPGcs-1707494263-1-Achg4yhuJPB+Pm/+4Tb9u1jn1Cz/eP5gMyAK4nMezcWqKtdDBcTVxanD7RO7QmO19L1gehMA3/DWO/zRFK5rzoE=;__cf_bm=hmAgfbxGHZ3jZ4HSGiR4WRoup_hJbEpB7TgvS4uxJrw-1707494985-1-AeBtBbHsWEqud7nG6SS7i6TraSmDqmDqHerV0mBAn/7jXdPIPnhnVnD7tJ3C9YnRxHMhxEpDLC+chF4Lgg6lcbs=;__cf_bm=.DlWclNpi2g4usHq3_MBvuovXP7rtEfvt72o2PNNNtA-1707495085-1-AWeLL7xCc3bBf79eR2pFF6HUgpvqOGoDONo9WgvafRIgitOAKE659+VRgoW0DgqPq5MBpHteAFTIEmmEq/vwWc0=');
     }
 
     private initMiddlewares(): void {

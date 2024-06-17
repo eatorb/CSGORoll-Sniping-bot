@@ -18,16 +18,14 @@ import {headers} from "./config/Headers";
 import {HandleConnect} from "./events/HandleConnect";
 import {HandleMessage} from "./events/HandleMessage";
 import {HandleError} from "./events/HandleError";
-import {EncryptionService} from "../api/services/Encryption.service";
+import {EndpointType} from "./models/enums/EndpointType";
 
 export class Client {
 
     private socket!: Websocket;
-    private socketEndpoint: string = 'wss://api.csgoroll.com/graphql';
+    private readonly socketEndpoint: EndpointType;
     private readonly headers: Record<string, string>;
     private subProtocol: string[] = ['graphql-transport-ws'];
-    private readonly encryptedUserCookies: string = "cookieyes-consent=consentid:NThsNEQ1WFBMdlZnZkFpTWtoVVp4Y05GU2x0aFdnSE4,consent:yes,action:no,necessary:yes,analytics:yes,advertisement:yes,other:yes;data=2504239b2fe516d3e14805694e3429be;_cfuvid=hivn0lLifbeIsEc.qwnY7ttzMg6jAQiLahAiMJUnqns-1705512740921-0-604800000;session=s%3AQREALkQGfEQM6DVuG2jl1skjlbeSQXNR.eNML9STrf4qvNmXjdYO8PPgPAVU3lsQwXvlAOlfcniQ;__cf_bm=cdsYDqf..A_1YNtOGkVVu3mYpXbhNV1TMSw9vXA.LOw-1706990546-1-AaqG5qvkhD63GJ2B2nB2GCFZ7CH16jfVYWj81WK8tEbP1RVLT60oEhO2vMnMfaZC5By1C3p1fcxPnNJTGWo8HY0=;cf_clearance=CxqyfeavizD2FMjTTMv6dN9a8C7L7zRXrYKdGht9fdk-1706990547-1-AX4SPxVdnmMGaxaJqHGLfXkV9n6dJ9gdkYXFJU0MB064VbEbzeXUXbCjLHLEO8Ne/9Ur6drV5GK5jcHglwFEAFk=";
-    private encryptionService: EncryptionService;
 
     private reconnectAttempts: number = 0;
     private readonly maxReconnectAttempts: number = 5;
@@ -35,9 +33,9 @@ export class Client {
     private reconnectDelay: number = 1000;
     private maxReconnectDelay: number = 16000;
 
-    constructor() {
-        this.encryptionService = new EncryptionService(process.env.ENC_SECRET_KEY!);
-        this.headers = headers(this.encryptedUserCookies);
+    constructor(endpoint: EndpointType, host: string, origin: string, cookie: string) {
+        this.socketEndpoint = endpoint;
+        this.headers = headers(cookie, host, origin);
         this.init();
     }
 
@@ -55,6 +53,8 @@ export class Client {
             headers: this.headers
         });
         this.setupSocketListener();
+
+        console.log("[wss] connecting to endpoint: ", this.socketEndpoint);
     }
 
     private setupSocketListener(): void {
@@ -67,10 +67,6 @@ export class Client {
         });
 
         this.socket.on('error', (error: any) => new HandleError(this.socket, error));
-    }
-
-    private decryptUserCookies(): string {
-        return this.encryptionService.decrypt(this.encryptedUserCookies);
     }
 
     private reconnect(): void {

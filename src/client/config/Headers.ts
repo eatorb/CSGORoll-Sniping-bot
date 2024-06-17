@@ -12,21 +12,21 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-
-export const headers = (cookies: string) => {
+export const headers = (cookies: string, host: string, origin: string) => {
 
     console.log("Cookies:", cookies);
 
     return {
-        'Host': 'api.csgoroll.com',
+        'Host': host,
         'Connection': 'Upgrade',
         'Pragma': 'no-cache',
         'Cache-Control': 'no-cache',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Upgrade': 'websocket',
-        'Origin': 'https://www.csgoroll.com',
+        'Origin': origin,
         'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+        'sec-websocket-extensions': 'permessage-deflate; client_max_window_bits',
         'Cookie': cookies
     }
 };

@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-export const joinTradesQuery = (uuid: string, tradeId: string, recaptcha: string) => {
+export const joinTradesQuery = (uuid: string, tradeId: string) => {
     return {
         id: uuid,
         type: "subscribe",
@@ -20,13 +20,21 @@ export const joinTradesQuery = (uuid: string, tradeId: string, recaptcha: string
             variables: {
                 input: {
                     tradeIds: [tradeId],
-                    recaptcha: recaptcha,
-                    hasCompliedToAntiRWT: true
-                }
+                    recaptcha: "",
+                    hasCompliedToAntiRWT: true,
+                },
             },
             extensions: {},
             operationName: "JoinTrades",
-            query: "mutation JoinTrades($input: JoinTradesInput!) {\n  joinTrades(input: $input) {\n    trades {\n      id\n      status\n      totalValue\n      updatedAt\n      expiresAt\n      withdrawer {\n        id\n        steamId\n        avatar\n        displayName\n        steamDisplayName\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n}\n"
-        }
+            query: `
+                mutation JoinTrades($input: JoinTradesInput!) {
+                    joinTrades(input: $input) {
+                        trades {
+                            id
+                        }
+                    }
+                }
+            `,
+        },
     };
 };

@@ -12,23 +12,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  */
 
-import {v4 as uuidv4} from "uuid";
 
-
-export const onCreateTrade = {
-    id: '3566f08a-de46-49f1-a93a-7c767a86dc7f',
-    type: "subscribe",
-    payload: {
-        query: `
-      subscription OnCreateTrade($userId: ID) {
-        createTrade(userId: $userId) {
-          trade {
-            id
-            markupPercent
-            totalValue
-          }
-        }
-      }
-    `
-    }
-};
+export enum EndpointType {
+    CSGOROLL_COM = "wss://api.csgoroll.com/graphql",
+    CSGOROLL_TR = "wss://api.csgorolltr.com/graphql",
+    CSGOROLL_GG = "wss://api.csgoroll.gg/graphql"
+}
