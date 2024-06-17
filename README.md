@@ -28,9 +28,9 @@ The CS:GO Empire Sniping Bot is designed to automate the process of sniping item
 
 
 ## Modules
-**Client WebSocket**: Connects to CSGORoll WebSocket for real-time item tracking.
-**API**: Handles all backend logic and interactions.
-**WebSocket Server**: Manages all WebSocket connections for the bot operations. (WIP)
+- **Client WebSocket**: Connects to CSGORoll WebSocket for real-time item tracking.
+- **API**: Handles all backend logic and interactions.
+- **WebSocket Server**: Manages all WebSocket connections for the bot operations. (WIP)
 
 ## Disclaimer
 This bot is intended for educational purposes only. Usage of this bot for sniping items on CSGORoll might violate their terms of service. Users should ensure they comply with all applicable laws and terms of service.
