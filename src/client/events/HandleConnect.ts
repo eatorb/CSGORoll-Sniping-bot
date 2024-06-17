@@ -1,16 +1,31 @@
+/*
+ * Copyright (c) 2024 Šimon Sedlák snipeit.io All rights reserved.
+ *
+ * Licensed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007 (the "License");
+ * You may not use this file except in compliance with the License.
+ *
+ * You may obtain a copy of the License at
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+
 import Websocket from "ws";
 import {IConnectionInit} from "../models/interfaces/IConnectionInit";
 import {IPingMessage} from "../models/interfaces/IPingMessage";
 import {onCreateTrade} from "../queries/onCreateTrade";
+
 export class HandleConnect {
 
     private socket: Websocket;
-    private readonly query: any;
+    private readonly onCreateTradeQuery: any;
     private pingInterval?: NodeJS.Timer;
-
     constructor(socket: Websocket) {
         this.socket = socket;
-        this.query = onCreateTrade;
+        this.onCreateTradeQuery = onCreateTrade;
         this.init();
     }
 
@@ -20,17 +35,19 @@ export class HandleConnect {
         this.sendPingMessage();
         this.sendConnectionInit();
 
-
         this.pingInterval = setInterval(() => {
             this.sendPingMessage();
         }, 60000);
 
-        this.sendQuery();
+        setTimeout(() => {
+            this.sendQuery();
+        }, 1000);
+
     }
 
     private sendQuery(): void {
         try {
-            this.socket.send(JSON.stringify(this.query));
+            this.socket.send(JSON.stringify(this.onCreateTradeQuery));
         } catch (error) {
             console.log("[wss] Error while query message. Reason:", error);
         }

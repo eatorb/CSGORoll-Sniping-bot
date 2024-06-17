@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model cookies {
+  cookieId Int     @id @default(autoincrement())
+  userId   Int
+  cookie   String? @db.Text
+  user     user    @relation(fields: [userId], references: [UserID], onUpdate: Restrict, map: "cookies_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model errorlogs {
+  errorMessage String?   @db.Text
+  status       Int?
+  errorCode    String?   @db.Text
+  timestamp    DateTime? @db.DateTime(0)
+  errorId      Int       @id @default(autoincrement())
+}
+
+model instance {
+  instanceId  Int     @id @default(autoincrement())
+  userId      Int
+  containerId String? @db.Text
+  status      String? @db.Text
+  user        user    @relation(fields: [userId], references: [UserID], onUpdate: Restrict, map: "instance_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model user {
+  UserID       Int        @id @default(autoincrement())
+  email        String     @unique(map: "email") @db.VarChar(255)
+  password     String     @db.VarChar(255)
+  createdAt    DateTime   @default(now()) @db.DateTime(0)
+  refreshToken String?    @db.Text
+  apiToken     String?    @db.Text
+  cookies      cookies[]
+  filter       filter[]
+  instance     instance[]
+}
+
+model filter {
+  filterId            Int   @id @unique(map: "filterId") @default(autoincrement())
+  userId              Int?
+  minPrice            Int?
+  maxPrice            Int?
+  maxMarkupPercentage Int?
+  excludeSticker      Int   @default(0) @db.SmallInt
+  excludePin          Int   @default(0) @db.SmallInt
+  excludeMusicKit     Int   @default(0) @db.SmallInt
+  excludeSouvenir     Int   @default(0) @db.SmallInt
+  excludeStatTrak     Int   @default(0) @db.SmallInt
+  excludeCases        Int?  @default(0) @db.SmallInt
+  excludeAgents       Int?  @default(0) @db.SmallInt
+  user                user? @relation(fields: [userId], references: [UserID], onDelete: Restrict, onUpdate: Restrict, map: "filter_ibfk_1")
+
+  @@index([userId], map: "userId")
+}

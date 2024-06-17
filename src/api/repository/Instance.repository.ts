@@ -1,46 +1,68 @@
-import {MysqlError, Pool} from "mysql";
-import mysql from "../../shared/config/Config";
-import {IInstance} from "../models/interfaces/IInstance";
+/*
+ * Copyright (c) 2024 Šimon Sedlák snipeit.io All rights reserved.
+ *
+ * Licensed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007 (the "License");
+ * You may not use this file except in compliance with the License.
+ *
+ * You may obtain a copy of the License at
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+
+import {instance, PrismaClient} from "@prisma/client";
 
 export class InstanceRepository {
 
-    private connection: Pool;
+    private prisma: PrismaClient;
+
     constructor() {
-        this.connection = mysql.connection;
+        this.prisma = new PrismaClient();
     }
 
     async insertInstance(userId: number, containerId: string, status: string): Promise<void> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('INSERT INTO instance (userId, containerId, status) VALUES (?, ?, ?)', [userId, containerId, status], (error: MysqlError | null): void => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while trying to insert instance.'));
-
-                resolve();
+        try {
+            await this.prisma.instance.create({
+                data: {
+                    userId: userId,
+                    containerId: containerId,
+                    status: status
+                }
             });
-        });
+        } catch (error) {
+            throw new Error('Error while creating a new instance.');
+        }
     }
 
-    async getUserInstance(userId: number): Promise<IInstance | null> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('SELECT * FROM instance WHERE userId = (?)', [userId], (error: MysqlError | null, results): void => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while trying to get user instance.'));
-
-                const instance: IInstance = results.length > 0 ? results[0] : null;
-                resolve(instance);
+    async getUserInstance(userId: number): Promise<instance | null> {
+        try {
+            return await this.prisma.instance.findFirst({
+                where: {
+                    userId: userId
+                }
             });
-        });
+        } catch (error) {
+            throw new Error('Error while finding an instance.');
+        }
+
     }
 
     async deleteInstance(userId: number, containerId: string): Promise<void> {
-        return new Promise((resolve, reject): void => {
-            this.connection.query('DELETE FROM instance WHERE userId = (?) AND containerId = (?)', [userId, containerId], (error: MysqlError | null) => {
-                if (error)
-                    reject(new Error('Mysql has occurred an error while trying to delete an instance.'));
+        try {
+            await this.prisma.instance.deleteMany({
+                where: {
+                    AND: [
+                        { userId: userId },
+                        { containerId: containerId }
+                    ]
+                }
+            })
 
-                resolve();
-            });
-        });
+        } catch (error) {
+            throw new Error('Error while deleting an instance.');
+        }
     }
-
 }

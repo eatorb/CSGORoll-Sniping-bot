@@ -1,30 +1,44 @@
+/*
+ * Copyright (c) 2024 Šimon Sedlák snipeit.io All rights reserved.
+ *
+ * Licensed under the GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007 (the "License");
+ * You may not use this file except in compliance with the License.
+ *
+ * You may obtain a copy of the License at
+ * https://www.gnu.org/licenses/gpl-3.0.html
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ */
+
+
 import {UserRepository} from "../repository/User.repository";
-import {IUser} from "../models/interfaces/IUser";
-import {jwtRefreshSecret, jwtSecret} from "../../shared/config/Config";
-import {isSQLInjections} from "../../shared/utilities/restUtils";
+import {jwtRefreshSecret, jwtSecret} from "../config/Config";
 import bcrypt from 'bcrypt';
 import jwt, {JwtPayload} from "jsonwebtoken";
 import {PasswordValidationService} from "./PasswordValidation.service";
+import {user} from "@prisma/client";
+import {RecaptchaService} from "./Recaptcha.service";
 
 export class UserService {
 
     private userRepository: UserRepository;
+    private recaptchaService: RecaptchaService;
 
     constructor() {
         this.userRepository = new UserRepository();
+        this.recaptchaService = new RecaptchaService();
     }
 
-    async registerUser(email: string, password: string, termsAccepted: boolean): Promise<{accessToken: string, refreshToken: string}> {
-        if (isSQLInjections(email, password))
-            throw new Error('An unexpected error has occurred.');
-
+    async registerUser(email: string, password: string, termsAccepted: boolean, recaptchaToken: string): Promise<{accessToken: string, refreshToken: string}> {
         if (!termsAccepted)
             throw new Error('You have to accept our terms of service.');
 
-        const user: IUser | null = await this.userRepository.findByEmail(email);
+        const isRecaptchaValid: boolean = await this.recaptchaService.verifyRecaptchaToken(recaptchaToken, 'register');
 
-        if (user)
-            throw new Error('User with this email has been already registered, please use another email.');
+        if (!isRecaptchaValid)
+            throw new Error('Failed to solve a recaptcha.');
 
         PasswordValidationService.validate(password);
 
@@ -34,43 +48,44 @@ export class UserService {
 
         const refreshToken: string = this.generateRefreshToken(userId);
 
-        await this.userRepository.saveRefreshToken(refreshToken, userId);
+        await this.userRepository.updateRefreshToken(refreshToken, userId);
 
         const accessToken: string = jwt.sign({ userId: userId }, jwtSecret, { expiresIn: '15m' });
+
         return {accessToken, refreshToken};
     }
 
-    async loginUser(email: string, password: string, remember: boolean): Promise<{accessToken: string, refreshToken: string}> {
-        if (isSQLInjections(email, password))
-            throw new Error('An unexpected error has occurred.');
+    async loginUser(email: string, password: string, remember: boolean, recaptchaToken: string): Promise<{accessToken: string, refreshToken: string}> {
 
-        const user: IUser | null = await this.userRepository.findByEmail(email);
+        const isRecaptchaValid: boolean = await this.recaptchaService.verifyRecaptchaToken(recaptchaToken, 'login');
+
+        if (!isRecaptchaValid)
+            throw new Error('Failed to solve a recaptcha.');
+
+        const user: user | null = await this.userRepository.findByEmail(email);
 
         if (!user || !(await bcrypt.compare(password, user.password)))
             throw new Error('Invalid credentials');
 
-        const refreshToken: string = this.generateRefreshToken(user.userId!);
+        const refreshToken: string = this.generateRefreshToken(user.UserID);
 
-        await this.userRepository.saveRefreshToken(refreshToken, user.userId!);
+        await this.userRepository.updateRefreshToken(refreshToken, user.UserID);
 
         const expiresIn: string = remember ? '1d' : '15m';
 
-        const accessToken: string = jwt.sign({ userId: user.userId }, jwtSecret, { expiresIn });
+        const accessToken: string = jwt.sign({ userId: user.UserID }, jwtSecret, { expiresIn });
 
         return {accessToken, refreshToken};
     }
+
     async refreshToken(refreshToken: string): Promise<{accessToken: string}> {
 
-        if (isSQLInjections(refreshToken))
-            throw new Error('Invalid token format.');
+        const user: user | null = await this.userRepository.findRefreshToken(refreshToken);
 
-        const token: string | null = await this.userRepository.findRefreshToken(refreshToken);
-
-        if (!token)
-            throw new Error('Refresh token not found. Please log in again.');
+        if (!user)
+            throw new Error('User not found. Please log in again.');
 
         try {
-
             const decoded: jwt.JwtPayload = jwt.verify(refreshToken, jwtRefreshSecret) as JwtPayload;
 
             if (!decoded.userId)
@@ -86,12 +101,7 @@ export class UserService {
     }
 
     async logoutUser(refreshToken: string): Promise<void> {
-
-        if (isSQLInjections(refreshToken))
-            throw new Error('Invalid token format.');
-
-        await this.userRepository.removeRefreshToken(refreshToken);
-
+        await this.userRepository.deleteRefreshToken(refreshToken);
     }
 
     private generateRefreshToken(userId: number): string {
