@@ -1,7 +1,7 @@
 # CS:GO Roll Sniping Bot
 
 ## Introduction
-The CS:GO Empire Sniping Bot is designed to automate the process of sniping items with low markup percentages on CS:GORoll. Users can purchase these items through the bot and resell them at a higher markup to achieve a profit. The bot leverages WebSocket connections, Docker, and modern web technologies to provide a robust and user-friendly experience.
+The CS:GO Roll Sniping Bot is designed to automate the process of sniping items with low markup percentages on CS:GORoll. Users can purchase these items through the bot and resell them at a higher markup to achieve a profit. The bot leverages WebSocket connections, Docker, and modern web technologies to provide a robust and user-friendly experience.
 
 ## Features
 - **Item Sniping**: Automatically buys items with the lowest markup percentage.
